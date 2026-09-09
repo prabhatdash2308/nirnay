@@ -48,3 +48,9 @@ node_modules
 .vercel
 coverage
 .DS_Store
+
+# Firebase Admin credentials
+/secrets/
+
+# Supabase Studio temporary SQL snippets
+/supabase/snippets/
