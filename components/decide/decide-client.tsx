@@ -22,6 +22,7 @@ import { isInsuranceProduct, isInvestmentProduct } from "@/lib/types/product";
 import type { Product } from "@/lib/types/product";
 import type { FinancialProfileInput } from "@/lib/types/financial-profile";
 import { cn } from "cn";
+import { AIExplanationPanel } from "./ai-explanation-panel";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Subcomponents
@@ -337,6 +338,9 @@ export function DecideClient({ initialProducts }: DecideClientProps) {
           </div>
         </div>
       )}
+
+      {/* AI Explanation Panel */}
+      <AIExplanationPanel productIds={initialProducts.map((p) => p.id)} />
 
       {/* General Cautions */}
       <div className="space-y-3 rounded-xl border border-border bg-card p-5">

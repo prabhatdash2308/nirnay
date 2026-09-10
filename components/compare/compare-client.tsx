@@ -395,7 +395,7 @@ interface CompareClientProps {
 
 export function CompareClient({ initialProducts }: CompareClientProps) {
   const router = useRouter();
-  const { currentIds, removeProduct, clearAll } = useCompareSet();
+  const { currentIds, removeProduct, clearAll, createHref } = useCompareSet();
 
   // Products driven by URL state — re-resolve on URL change
   // (initialProducts is the SSR-resolved value; client uses URL directly via hook)
@@ -497,9 +497,8 @@ export function CompareClient({ initialProducts }: CompareClientProps) {
           {/* Add another product — only if below max */}
           {canAddMore && (
             <Link
-              href="/discover"
-              id="compare-add-from-discover"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              href={createHref("/discover")}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <Plus className="h-3.5 w-3.5" />
               Add product

@@ -19,6 +19,7 @@ import type { SuitabilityResult } from "@/lib/suitability/engine";
 import { BAND_LABELS, BAND_COLORS, BAND_BG } from "@/lib/suitability/engine";
 import { addToWatchlist, removeFromWatchlist } from "@/app/(app)/discover/watchlist-actions";
 import { firebaseAuth } from "@/app/lib/firebase-client";
+import { useCompareSet } from "@/hooks/use-compare-set";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Icon map for product features
@@ -63,6 +64,7 @@ export function ProductCard({
   onWatchlistToggle,
   isAuthenticated,
 }: ProductCardProps) {
+  const { addProduct, createHref } = useCompareSet();
   const [saving, startSaving] = useTransition();
   const [localWatchlisted, setLocalWatchlisted] = useState(isWatchlisted);
   const [watchlistError, setWatchlistError] = useState<string | null>(null);
@@ -228,20 +230,24 @@ export function ProductCard({
       {/* Card footer */}
       <div className="mt-3 flex items-center gap-2 border-t border-border px-4 py-3">
         <Link
-          href={`/discover/${product.id}`}
+          href={createHref(`/discover/${product.id}`)}
           id={`product-card-detail-${product.id}`}
           className="flex-1 rounded-md border border-border bg-background py-1.5 text-center text-xs font-medium text-foreground transition-colors hover:bg-muted"
         >
           View details
         </Link>
-        <Link
-          href={`/compare?add=${product.id}`}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            addProduct(product.id);
+          }}
           id={`product-card-compare-${product.id}`}
           aria-label="Add to compare"
           className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <GitCompare className="h-3.5 w-3.5" />
-        </Link>
+        </button>
       </div>
 
       {/* Provenance footer */}

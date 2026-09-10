@@ -21,6 +21,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { firebaseAuth } from "@/app/lib/firebase-client";
 import { loadFinancialProfile } from "@/app/(app)/settings/financial-profile/actions";
 import { loadWatchlistIds, addToWatchlist, removeFromWatchlist } from "@/app/(app)/discover/watchlist-actions";
+import { useCompareSet } from "@/hooks/use-compare-set";
 import { computeSuitability, BAND_LABELS, BAND_COLORS, BAND_BG } from "@/lib/suitability/engine";
 import { isInsuranceProduct, isInvestmentProduct } from "@/lib/types/product";
 import type { Product } from "@/lib/types/product";
@@ -69,6 +70,7 @@ interface ProductDetailClientProps {
 }
 
 export function ProductDetailClient({ product }: ProductDetailClientProps) {
+  const { addProduct, createHref } = useCompareSet();
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [profile, setProfile] = useState<FinancialProfileInput | null>(null);
@@ -156,7 +158,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
     <div className="mx-auto max-w-2xl space-y-6 p-6 lg:p-8">
       {/* Back link */}
       <Link
-        href="/discover"
+        href={createHref("/discover")}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
@@ -212,14 +214,18 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
             {isWatchlisted ? "Saved" : "Save"}
           </button>
 
-          <Link
+          <button
             id={`detail-compare-${product.id}`}
-            href={`/compare?add=${product.id}`}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              addProduct(product.id);
+            }}
             className="flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <GitCompare className="h-3.5 w-3.5" />
             Compare
-          </Link>
+          </button>
         </div>
       </div>
 

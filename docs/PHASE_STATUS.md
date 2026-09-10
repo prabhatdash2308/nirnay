@@ -110,17 +110,39 @@ Zod schema, multi-step onboarding form, server actions with Firebase Admin verif
 
 ## Current Phase
 
-None — Phase 5 complete. Ready for Phase 6.
+None — Phase 6 complete. Ready for Phase 7.
+
+---
+
+### Phase 6 — AI Explanation Engine + Compare Fix
+**Status:** ACCEPTED
+
+#### Compare Regression Fix
+- Root cause: `<Link>` navigations were overwriting URL state instead of appending.
+- Fix: `createHref(basePath)` added to `useCompareSet` hook. `addProduct` button correctly appends state.
+- UX Impact: Users can now navigate freely between Discover and Compare, accumulating up to 3 products correctly.
+- Tests: 10 regression tests added using Vitest (`lib/compare/utils.test.mts`).
+
+#### AI Explanation Engine
+- Architecture: API Route (`app/api/ai/explain-decision/route.ts`) handles secure LLM generation.
+- Model: `gemini-1.5-pro` via `@google/generative-ai`.
+- Prompting: Uses structured JSON schema (`ExplanationResponse`) to ensure deterministic UI rendering. The system prompt strongly grounds the AI to NOT invent information and NOT give financial advice.
+- Security: Requires authenticated profile context loaded securely via Admin SDK server-side.
+- UI: Added `AIExplanationPanel` in Decide view, presenting the LLM explanation in an organized, beautiful format.
+- Tests: 15 comprehensive unit tests added to ensure error handling, strict json structure, and authoritative heuristic priority (`app/api/ai/explain-decision/route.test.mts`).
+
+#### Validation
+- `npm run lint` — 0 errors
+- `npx tsc --noEmit` — passes
+- `npm run build` — passes (added Suspense boundaries to fix Next.js dynamic routing bailout)
+- `npx vitest run` — all suites pass (10 compare regression tests, 15 AI tests)
 
 ---
 
 ## Next Phase
 
-### Phase 6 — AI Explanation Engine
+### Phase 7 — Manage / Lifecycle Foundation
 **Scope:**
-- Implement a structured LLM grounded on catalogue data
-- Conversational financial copilot for specific product questions
-- Answer user queries explicitly based on Phase 3 catalogue facts
-
-### Future Phases
-- Phase 7 — Calendar, Alerts, Renewal tracking
+- Dashboard overview for selected/active products
+- Alert mechanisms and renewal tracking
+- Premium/SIP payment calendar simulation

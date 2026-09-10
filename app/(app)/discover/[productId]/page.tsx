@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { getProductById, PRODUCT_CATALOGUE } from "@/lib/catalogue/products";
 import { ProductDetailClient } from "@/components/discover/product-detail-client";
+import { Loader2 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static params — pre-render all product pages at build time
@@ -50,5 +52,9 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  return <ProductDetailClient product={product} />;
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+      <ProductDetailClient product={product} />
+    </Suspense>
+  );
 }

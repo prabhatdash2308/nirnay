@@ -46,10 +46,21 @@ export function useCompareSet() {
     router.push("/compare");
   }, [router]);
 
+  const createHref = useCallback(
+    (basePath: string) => {
+      if (currentIds.length === 0) return basePath;
+      const params = currentIds.map((id) => `add=${encodeURIComponent(id)}`).join("&");
+      const separator = basePath.includes("?") ? "&" : "?";
+      return `${basePath}${separator}${params}`;
+    },
+    [currentIds]
+  );
+
   return {
     currentIds,
     addProduct,
     removeProduct,
     clearAll,
+    createHref,
   };
 }

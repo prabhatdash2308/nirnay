@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { DiscoverBootstrap } from "@/components/discover/discover-bootstrap";
+import { Loader2 } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Discover",
@@ -22,7 +24,9 @@ export default function DiscoverPage() {
       </div>
 
       {/* Bootstrap: resolves auth, loads profile + watchlist, renders grid */}
-      <DiscoverBootstrap />
+      <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+        <DiscoverBootstrap />
+      </Suspense>
     </div>
   );
 }
