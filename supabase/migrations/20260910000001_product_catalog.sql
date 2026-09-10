@@ -581,7 +581,7 @@ insert into public.insurance_products (
 ) values
 (
   'lif-lic-tech-term-2026', 'life', 'LIC', 'Tech Term',
-  'Online term plan from India\'s most trusted insurer',
+  'Online term plan from India''s most trusted insurer',
   8499.00, 'yearly',
   5000000, 50000000, 10000000,
   18, 65,

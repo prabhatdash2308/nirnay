@@ -1,4 +1,4 @@
-import { clamp, roundAmount, roundPercentage } from "./calculations";
+import { roundAmount } from "./calculations";
 
 export type InsuranceProductForCompare = {
   id: number | string;
@@ -374,11 +374,6 @@ function riskMatches(
   pref?: MutualFundComparisonContext["risk_preference"] | null,
 ): boolean | null {
   if (!pref) return null;
-  const prefIdx = {
-    conservative: 1,
-    moderate: 2,
-    aggressive: 4,
-  }[pref];
   const levelIdx = RISK_ORDER.indexOf(level);
   if (levelIdx < 0) return null;
   if (pref === "conservative") return levelIdx <= 1;

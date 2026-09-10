@@ -63,7 +63,7 @@ export const insurancePolicyCreateSchema = z.object({
   start_date: z.coerce.date().optional().nullable(),
   renewal_date: z.coerce.date().optional().nullable(),
   status: z.enum(["active", "expired", "cancelled", "pending"]).default("active"),
-  metadata: z.record(z.any()).default({}).optional(),
+  metadata: z.record(z.string(), z.any()).default({}).optional(),
 });
 
 export const insurancePolicyUpdateSchema = insurancePolicyCreateSchema.partial();
@@ -92,7 +92,7 @@ export const investmentCreateSchema = z.object({
   status: z
     .enum(["active", "paused", "completed", "cancelled"])
     .default("active"),
-  metadata: z.record(z.any()).default({}).optional(),
+  metadata: z.record(z.string(), z.any()).default({}).optional(),
 });
 
 export const investmentUpdateSchema = investmentCreateSchema.partial();
@@ -126,7 +126,7 @@ export const financialGoalCreateSchema = z.object({
   status: z
     .enum(["active", "completed", "paused", "cancelled"])
     .default("active"),
-  metadata: z.record(z.any()).default({}).optional(),
+  metadata: z.record(z.string(), z.any()).default({}).optional(),
 });
 
 export const financialGoalUpdateSchema = financialGoalCreateSchema.partial();
@@ -159,7 +159,7 @@ export const alertCreateSchema = z.object({
     .enum(["info", "warning", "important", "critical"])
     .default("info"),
   scheduled_for: z.coerce.date().optional().nullable(),
-  metadata: z.record(z.any()).default({}).optional(),
+  metadata: z.record(z.string(), z.any()).default({}).optional(),
 });
 
 export const alertUpdateSchema = z.object({
@@ -189,7 +189,7 @@ export const calendarEventCreateSchema = z.object({
   status: z
     .enum(["upcoming", "completed", "skipped", "cancelled"])
     .default("upcoming"),
-  metadata: z.record(z.any()).default({}).optional(),
+  metadata: z.record(z.string(), z.any()).default({}).optional(),
 });
 
 export const calendarEventUpdateSchema = calendarEventCreateSchema.partial();

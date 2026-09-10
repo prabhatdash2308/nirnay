@@ -6,7 +6,6 @@ import {
   calculateBudgetFit,
   clamp,
   roundAmount,
-  roundPercentage,
 } from "./calculations";
 
 // ============================================================
@@ -193,8 +192,7 @@ export function scoreInsuranceProducts(
       const fit = calculateBudgetFit({
         productCost: p.base_premium,
         userBudget: annual_budget,
-        frequency:
-          (p.premium_frequency as any) === "yearly" ? "yearly" : "yearly",
+        frequency: "yearly",
       });
       budgetStatus = fit.severity;
       if (fit.severity === "within") {
