@@ -56,11 +56,11 @@ const overviewCards = [
   {
     id: "next-renewal",
     label: "Next Renewal",
-    value: "Apr 2025",
-    sub: "Car insurance",
+    value: "Apr 2026",
+    sub: "Car insurance (demo)",
     icon: CalendarClock,
     accent: "text-primary",
-    badge: "In 7 months",
+    badge: "Upcoming",
   },
 ] as const;
 
@@ -94,7 +94,7 @@ const attentionItems = [
   {
     id: "alert-renewal",
     title: "Car insurance renewal approaching",
-    detail: "Due in April 2025. Compare plans before renewal to find better rates.",
+    detail: "Demo: renewal due April 2026. Compare plans before renewal to find better rates.",
     href: "/compare",
   },
   {
@@ -262,7 +262,7 @@ export default function DashboardPage() {
               — every suggestion includes the reasoning and source.
             </p>
             <Link
-              href="/settings"
+              href="/settings/financial-profile"
               id="ai-insight-setup-link"
               className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-foreground underline-offset-4 hover:underline"
             >
