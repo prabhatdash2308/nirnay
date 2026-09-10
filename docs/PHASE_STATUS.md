@@ -146,10 +146,44 @@ None — Phase 6 complete. Ready for Phase 7.
 
 ---
 
+### Phase 7 — Decision Execution & Storage
+**Status:** ACCEPTED
+
+#### Features
+- Deterministic decision persistence via server action with RLS
+- Saved decisions visible on Dashboard
+- Historical Decision snapshots viewable via `/decisions/[id]`
+
+---
+
+## Current Phase
+
+None — Phase 8 complete. Ready for Phase 9.
+
+---
+
+### Phase 8 — Portfolio Foundation
+**Status:** COMPLETE
+
+#### Features
+- **Portfolio Route:** `/portfolio` serves as the centralized "Manage" surface.
+- **Domain Types:** `lib/types/portfolio.ts` strictly maps to existing Supabase migration `20260909094445` (`insurance_policies`, `investments`, `financial_goals`).
+- **Data Fetching:** Parallel RLS-enforced Supabase queries triggered via client-side Firebase Auth ID token and resolved by a secure Server Action (`app/(app)/portfolio/actions.ts`).
+- **Calculations:** Deterministic algorithms calculate total insurance coverage, active investment holdings, and goal progress.
+- **Data Honesty:** "Current Value" fields are explicitly omitted in UI if not present in the database to prevent fake metrics or performance numbers.
+- **Needs Attention:** Actionable items (e.g. renewals within 30 days) dynamically generated from existing domain data.
+- **UI Architecture:** `<PortfolioClient>` handles real-time auth resolution, presenting data in responsive `<PolicyCard>`, `<InvestmentCard>`, and `<GoalCard>` subcomponents with deliberate empty states.
+
+#### Validation
+- `npm run lint` — 0 errors, 4 warnings
+- `npx tsc --noEmit` — passes
+- `npx vitest run` — all suites pass
+- `npm run build` — passes
+- Browser Testing — (Not performed locally as browser was inaccessible)
+
+---
+
 ## Next Phase
 
-### Phase 7 — Manage / Lifecycle Foundation
-**Scope:**
-- Dashboard overview for selected/active products
-- Alert mechanisms and renewal tracking
-- Premium/SIP payment calendar simulation
+### Phase 9 — TBD
+**Scope:** TBD
