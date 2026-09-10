@@ -54,7 +54,10 @@ export const financialProfileSchema = z.object({
 
   risk_profile: z.enum(RISK_PROFILES).nullable(),
 
-  primary_goals: z.array(z.string()),
+  // Only accept declared goal values; prevents arbitrary strings reaching the DB.
+  primary_goals: z.array(
+    z.enum(PRIMARY_GOAL_OPTIONS.map((g) => g.value) as [string, ...string[]])
+  ),
 });
 
 export type FinancialProfileInput = z.infer<typeof financialProfileSchema>;

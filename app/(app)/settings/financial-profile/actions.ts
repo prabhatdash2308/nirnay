@@ -9,19 +9,15 @@ import {
 } from "@/lib/types/financial-profile";
 
 // ─────────────────────────────────────────────────────────────
-// Build a Supabase client authenticated with the user's
-// Firebase ID token retrieved from a request header.
+// Build a Supabase client that passes the user's Firebase ID token
+// as accessToken. This mirrors the browser client architecture:
 //
-// Server Actions run on the server. The Firebase ID token is
-// sent by the client form as a custom header before calling
-// the action — or we pass it explicitly as a parameter.
+// - Key used: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (anon)
+// - Auth:     Firebase JWT passed via accessToken callback
+// - RLS:      Evaluates auth.jwt() ->> 'sub' from the Firebase token
 //
-// We use the SUPABASE_SECRET_KEY (service role) ONLY to issue
-// an authenticated client on behalf of a verified Firebase user.
-// RLS still applies because we pass the user's JWT via the
-// Authorization header of the Supabase request.
-//
-// IMPORTANT: SUPABASE_SECRET_KEY never reaches the browser.
+// SUPABASE_SECRET_KEY is NOT used here — not needed and not safe in
+// a code path that also handles user-facing data reads/writes.
 // ─────────────────────────────────────────────────────────────
 
 function buildSupabaseWithToken(firebaseIdToken: string) {
@@ -32,9 +28,6 @@ function buildSupabaseWithToken(firebaseIdToken: string) {
     throw new Error("Supabase configuration is missing.");
   }
 
-  // Use the publishable key (anon) + pass the Firebase token as accessToken
-  // so that Supabase validates it through the configured third-party auth.
-  // This mirrors the browser client architecture — RLS applies fully.
   return createClient(supabaseUrl, supabasePublishableKey, {
     accessToken: async () => firebaseIdToken,
   });

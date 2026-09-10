@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import React from "react";
+import type { ComponentType } from "react";
 import Link from "next/link";
 import { ArrowRight, User, ShieldCheck, Bell } from "lucide-react";
 
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 interface SettingsSection {
   id: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   title: string;
   description: string;
   cta: string;
