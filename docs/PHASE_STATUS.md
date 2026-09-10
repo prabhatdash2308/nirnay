@@ -123,19 +123,24 @@ None — Phase 6 complete. Ready for Phase 7.
 - UX Impact: Users can now navigate freely between Discover and Compare, accumulating up to 3 products correctly.
 - Tests: 10 regression tests added using Vitest (`lib/compare/utils.test.mts`).
 
-#### AI Explanation Engine
+#### React Key Fix
+- Root cause: Missing stable keys on mapped `Fragment` elements and nested `<tr>`/`<td>` items in `CompareClient`.
+- Fix: Assigned stable semantic keys using `section.title`, `row.label`, and `product.id` respectively. Prevented generic console warnings and potential reconciler bugs during client renders.
+
+#### AI Explanation Engine & Fixes
 - Architecture: API Route (`app/api/ai/explain-decision/route.ts`) handles secure LLM generation.
-- Model: `gemini-1.5-pro` via `@google/generative-ai`.
-- Prompting: Uses structured JSON schema (`ExplanationResponse`) to ensure deterministic UI rendering. The system prompt strongly grounds the AI to NOT invent information and NOT give financial advice.
+- Model: Configurable via `GEMINI_MODEL` environment variable (defaults to `gemini-1.5-pro`).
+- Diagnosis: Encountered "AI explanation is temporarily unavailable" due to an invalid `GEMINI_API_KEY` mapped in `.env`. Enhanced server-side diagnostics to capture and gracefully log API errors safely without exposing secrets.
+- Prompting: Uses structured JSON schema via `Zod` (`ExplanationResponseValidator`) to enforce deterministic UI rendering and fail gracefully upon malformed outputs.
 - Security: Requires authenticated profile context loaded securely via Admin SDK server-side.
-- UI: Added `AIExplanationPanel` in Decide view, presenting the LLM explanation in an organized, beautiful format.
-- Tests: 15 comprehensive unit tests added to ensure error handling, strict json structure, and authoritative heuristic priority (`app/api/ai/explain-decision/route.test.mts`).
+- UI: Added `AIExplanationPanel` in Decide view.
+- Tests: 15 unit tests running on Vitest (`app/api/ai/explain-decision/route.test.mts`).
 
 #### Validation
 - `npm run lint` — 0 errors
 - `npx tsc --noEmit` — passes
 - `npm run build` — passes (added Suspense boundaries to fix Next.js dynamic routing bailout)
-- `npx vitest run` — all suites pass (10 compare regression tests, 15 AI tests)
+- `npx vitest run` — all suites pass (10 compare regression tests, 10 AI endpoint tests)
 
 ---
 

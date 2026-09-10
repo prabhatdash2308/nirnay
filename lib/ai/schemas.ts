@@ -1,4 +1,5 @@
 import { Schema, SchemaType } from "@google/generative-ai";
+import { z } from "zod";
 
 export const explanationResponseSchema: Schema = {
   type: SchemaType.OBJECT,
@@ -26,9 +27,11 @@ export const explanationResponseSchema: Schema = {
   required: ["summary", "whyItMatches", "whatToConsider", "questionsToAsk"],
 };
 
-export type ExplanationResponse = {
-  summary: string;
-  whyItMatches: string[];
-  whatToConsider: string[];
-  questionsToAsk: string[];
-};
+export const ExplanationResponseValidator = z.object({
+  summary: z.string(),
+  whyItMatches: z.array(z.string()),
+  whatToConsider: z.array(z.string()),
+  questionsToAsk: z.array(z.string()),
+});
+
+export type ExplanationResponse = z.infer<typeof ExplanationResponseValidator>;

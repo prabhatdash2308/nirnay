@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiClient } from "../../../../lib/ai/client";
 import { EXPLAIN_DECISION_SYSTEM_PROMPT } from "../../../../lib/ai/prompts";
-import { explanationResponseSchema, type ExplanationResponse } from "../../../../lib/ai/schemas";
+import { explanationResponseSchema, ExplanationResponseValidator } from "../../../../lib/ai/schemas";
 import { resolveCompareProducts } from "../../../../lib/compare/utils";
 import { loadFinancialProfile } from "../../../../app/(app)/settings/financial-profile/actions";
 import { generateDecisionGuidance } from "../../../../lib/decide/logic";
@@ -75,8 +75,9 @@ export async function POST(req: NextRequest) {
     };
 
     // 6. Call Gemini
+    const modelName = process.env.GEMINI_MODEL || "gemini-1.5-pro";
     const model = aiClient.getGenerativeModel({
-      model: "gemini-1.5-pro",
+      model: modelName,
       systemInstruction: EXPLAIN_DECISION_SYSTEM_PROMPT,
       generationConfig: {
         responseMimeType: "application/json",
@@ -87,16 +88,57 @@ export async function POST(req: NextRequest) {
 
     const prompt = `Explain the following decision context:\n\n${JSON.stringify(aiContext, null, 2)}`;
     
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    let text = "";
+    try {
+      const result = await model.generateContent(prompt);
+      text = result.response.text();
+    } catch (apiError) {
+      const err = apiError as Error & { status?: number };
+      console.error("[AI Explain] Gemini API Error:", {
+        message: err?.message || "Unknown API error",
+        status: err?.status,
+        model: modelName,
+      });
+      return NextResponse.json(
+        { error: "AI explanation is temporarily unavailable." },
+        { status: 502 }
+      );
+    }
     
-    // Parse the structured response
-    const parsed: ExplanationResponse = JSON.parse(text);
+    // Strip markdown JSON block if present (sometimes model ignores responseMimeType)
+    if (text.startsWith("```json")) {
+      text = text.replace(/^```json\n?/, "").replace(/\n?```$/, "");
+    }
     
-    return NextResponse.json(parsed);
+    let rawJson;
+    try {
+      rawJson = JSON.parse(text);
+    } catch (parseError) {
+      console.error("[AI Explain] JSON Parse Error:", { textPreview: text.substring(0, 100), error: (parseError as Error).message });
+      return NextResponse.json(
+        { error: "AI explanation is temporarily unavailable." },
+        { status: 500 }
+      );
+    }
+    
+    // Validate the structured response
+    const validation = ExplanationResponseValidator.safeParse(rawJson);
+    if (!validation.success) {
+      console.error("[AI Explain] Schema Validation Error:", validation.error.format());
+      return NextResponse.json(
+        { error: "AI explanation is temporarily unavailable." },
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json(validation.data);
 
   } catch (error) {
-    console.error("[AI Explain] Error:", error);
+    const err = error as Error;
+    console.error("[AI Explain] Unhandled Error:", {
+      message: err?.message || "Unknown error",
+      name: err?.name,
+    });
     return NextResponse.json(
       { error: "AI explanation is temporarily unavailable." },
       { status: 500 }

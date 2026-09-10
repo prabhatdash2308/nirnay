@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+
+vi.mock("server-only", () => ({}));
+
 import { POST } from "./route";
 
 // Mock the dependencies
@@ -45,8 +48,8 @@ describe("AI Explanation API Route", () => {
 
   const setupMocks = ({
     mockProfile = null as any,
-    mockProducts = [{ id: "p1", name: "Product 1", category: "insurance", subcategory: "health", keyFeatures: [], cost: {}, importantConsiderations: [], provenance: { source: { name: "Test" }, status: "reference" } }],
-    mockDecision = { strongestMatch: { id: "p1" }, hasTie: false, whyMatches: ["Reason"], cautions: ["Caution"], generalCautions: ["GenCaution"] },
+    mockProducts = [{ id: "p1", name: "Product 1", type: "insurance", subcategory: "health", keyFeatures: [], cost: {}, importantConsiderations: [], provenance: { source: { name: "Test" }, status: "reference" } }],
+    mockDecision = { strongestMatch: { product: { id: "p1" } }, hasTie: false, whyMatches: ["Reason"], cautions: ["Caution"], generalCautions: ["GenCaution"] },
     mockAiResponse = JSON.stringify({
       summary: "AI Summary",
       whyItMatches: ["AI Match"],
@@ -99,7 +102,7 @@ describe("AI Explanation API Route", () => {
     setupMocks({ throwAiError: true });
     const req = createRequest({ productIds: ["p1"] });
     const res = await POST(req);
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(502);
     const data = await res.json();
     expect(data.error).toBe("AI explanation is temporarily unavailable.");
   });
@@ -121,21 +124,21 @@ describe("AI Explanation API Route", () => {
   });
 
   it("10. One product", async () => {
-    setupMocks({ mockProducts: [{ id: "p1" }] as any });
+    setupMocks({ mockProducts: [{ id: "p1", provenance: { source: { name: "test" } } }] as any });
     const req = createRequest({ productIds: ["p1"] });
     const res = await POST(req);
     expect(res.status).toBe(200);
   });
 
   it("11. Multiple products", async () => {
-    setupMocks({ mockProducts: [{ id: "p1" }, { id: "p2" }] as any });
+    setupMocks({ mockProducts: [{ id: "p1", provenance: { source: { name: "test" } } }, { id: "p2", provenance: { source: { name: "test" } } }] as any });
     const req = createRequest({ productIds: ["p1", "p2"] });
     const res = await POST(req);
     expect(res.status).toBe(200);
   });
 
   it("12. Tie", async () => {
-    setupMocks({ mockDecision: { strongestMatch: { id: "p1" }, hasTie: true, whyMatches: [], cautions: [], generalCautions: [] } });
+    setupMocks({ mockDecision: { strongestMatch: { product: { id: "p1" } }, hasTie: true, whyMatches: [], cautions: [], generalCautions: [] } as any });
     const req = createRequest({ productIds: ["p1", "p2"] });
     const res = await POST(req);
     expect(res.status).toBe(200);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -224,7 +224,7 @@ function SummaryPanel({ items }: SummaryPanelProps) {
         </span>
       </div>
       <div className="space-y-2">
-        {items.map((item, i) => {
+        {items.map((item) => {
           const Icon =
             item.sentiment === "positive"
               ? CheckCircle2
@@ -232,7 +232,7 @@ function SummaryPanel({ items }: SummaryPanelProps) {
                 ? AlertTriangle
                 : Info;
           return (
-            <div key={i} className="flex items-start gap-2.5">
+            <div key={item.label} className="flex items-start gap-2.5">
               <Icon
                 className={cn(
                   "mt-0.5 h-3.5 w-3.5 shrink-0",
@@ -305,10 +305,10 @@ function CompareTable({ products, suitabilityMap, onRemove }: CompareTableProps)
         </thead>
 
         <tbody>
-          {sections.map((section, sIdx) => (
-            <>
+          {sections.map((section) => (
+            <Fragment key={section.title}>
               {/* Section header row */}
-              <tr key={`section-${sIdx}`} className="bg-muted/20">
+              <tr className="bg-muted/20">
                 <td
                   colSpan={products.length + 1}
                   className="border-b border-border px-4 py-2"
@@ -322,9 +322,9 @@ function CompareTable({ products, suitabilityMap, onRemove }: CompareTableProps)
               </tr>
 
               {/* Data rows */}
-              {section.rows.map((row, rIdx) => (
+              {section.rows.map((row) => (
                 <tr
-                  key={`row-${sIdx}-${rIdx}`}
+                  key={row.label}
                   className="border-b border-border/50 last:border-b-0 odd:bg-card even:bg-muted/10"
                 >
                   {/* Row label */}
@@ -354,7 +354,7 @@ function CompareTable({ products, suitabilityMap, onRemove }: CompareTableProps)
                   {/* Value cells */}
                   {row.cells.map((cell, cIdx) => (
                     <td
-                      key={cIdx}
+                      key={products[cIdx].id}
                       className={cn(
                         "border-r border-border/50 px-4 py-3 align-top text-xs last:border-r-0",
                         cell.notApplicable && "opacity-40",
@@ -376,7 +376,7 @@ function CompareTable({ products, suitabilityMap, onRemove }: CompareTableProps)
                   ))}
                 </tr>
               ))}
-            </>
+            </Fragment>
           ))}
         </tbody>
       </table>
