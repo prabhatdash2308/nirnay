@@ -86,20 +86,41 @@ Zod schema, multi-step onboarding form, server actions with Firebase Admin verif
 
 ---
 
+### Phase 5 — Decide / Decision Support Foundation
+**Status:** ACCEPTED
+
+#### Decision Architecture
+- **URL-driven State:** Reuses `/decide?add=<id>` mechanism from Compare. Seamless transition without global state.
+- **Decision Logic:** `lib/decide/logic.ts` evaluates 1-3 products using existing suitability engine, ranks them, handles ties, and cleanly separates positive profile alignments from general limitations and cautions.
+- **Deterministic & Grounded:** No LLMs used. Decision text uses safe language ("Strongest match for your profile", not "Best product").
+
+#### UI Implementation
+- **Strongest Match Card:** Highlights the top recommended option with clear rationale (Why it matches vs. What to consider).
+- **Secondary Options:** Displays other compared products beneath the recommendation.
+- **Trust Elements:** Highly visible "What this does NOT mean" red warning box, plus reference data provenance disclaimer.
+- **Empty & No-Profile States:** Safely handles missing products (Browse CTA) and missing profiles (prompts user to complete profile).
+
+#### Validation
+- `npm run lint` — 0 errors, 0 warnings
+- `npm run build` — exit 0, 23 routes
+- `npx tsc --noEmit` — passes
+- `npx tsx lib/decide/decide.test.mts` — 6/6 pass
+
+---
+
 ## Current Phase
 
-None — Phase 4 complete. Ready for Phase 5.
+None — Phase 5 complete. Ready for Phase 6.
 
 ---
 
 ## Next Phase
 
-### Phase 5 — Decide / Decision Support Foundation
+### Phase 6 — AI Explanation Engine
 **Scope:**
-- User decision flows
-- Watchlist management views
-- Portfolio projection/goals visualization
+- Implement a structured LLM grounded on catalogue data
+- Conversational financial copilot for specific product questions
+- Answer user queries explicitly based on Phase 3 catalogue facts
 
 ### Future Phases
-- Phase 6 — AI Explanation Engine (structured LLM grounded on catalogue data)
 - Phase 7 — Calendar, Alerts, Renewal tracking

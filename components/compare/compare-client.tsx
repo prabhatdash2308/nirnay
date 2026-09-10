@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   X,
@@ -393,6 +394,7 @@ interface CompareClientProps {
 }
 
 export function CompareClient({ initialProducts }: CompareClientProps) {
+  const router = useRouter();
   const { currentIds, removeProduct, clearAll } = useCompareSet();
 
   // Products driven by URL state — re-resolve on URL change
@@ -476,6 +478,22 @@ export function CompareClient({ initialProducts }: CompareClientProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Decide CTA — shown if at least 1 product selected */}
+          {products.length > 0 && (
+            <button
+              type="button"
+              id="compare-help-decide"
+              onClick={() => {
+                const url = `/decide?${currentIds.map((id) => `add=${encodeURIComponent(id)}`).join("&")}`;
+                router.push(url);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Help me decide
+            </button>
+          )}
+
           {/* Add another product — only if below max */}
           {canAddMore && (
             <Link
