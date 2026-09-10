@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
 } from "lucide-react";
 import Link from "next/link";
+import { SavedDecisionsClient } from "@/components/dashboard/saved-decisions-client";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -169,6 +170,9 @@ export default function DashboardPage() {
           })}
         </div>
       </section>
+
+      {/* Saved Decisions */}
+      <SavedDecisionsClient />
 
       {/* Needs attention */}
       <section aria-labelledby="attention-heading">

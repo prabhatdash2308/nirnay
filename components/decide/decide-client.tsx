@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Compass,
   GitCompare,
@@ -23,6 +24,7 @@ import type { Product } from "@/lib/types/product";
 import type { FinancialProfileInput } from "@/lib/types/financial-profile";
 import { cn } from "cn";
 import { AIExplanationPanel } from "./ai-explanation-panel";
+import { saveDecision } from "@/app/(app)/decide/actions";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Subcomponents
@@ -214,7 +216,66 @@ function StrongestMatchCard({
             </ul>
           </div>
         </div>
+
+        {/* Action Button */}
+        {hasProfile && (
+          <SaveDecisionButton productId={product.id} />
+        )}
       </div>
+    </div>
+  );
+}
+
+function SaveDecisionButton({ productId }: { productId: string }) {
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const router = useRouter();
+
+  const handleSave = async () => {
+    const user = firebaseAuth.currentUser;
+    if (!user) {
+      router.push("/auth");
+      return;
+    }
+
+    setStatus("saving");
+    try {
+      const token = await user.getIdToken();
+      await saveDecision(token, productId);
+      setStatus("saved");
+    } catch (e) {
+      console.error(e);
+      setStatus("error");
+    }
+  };
+
+  if (status === "saved") {
+    return (
+      <button disabled className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-600 border border-emerald-500/20">
+        <CheckCircle2 className="h-4 w-4" />
+        Decision Saved
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-6 flex flex-col items-center gap-2">
+      <button
+        onClick={handleSave}
+        disabled={status === "saving"}
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+      >
+        {status === "saving" ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Saving Intent...
+          </>
+        ) : (
+          "Save Decision"
+        )}
+      </button>
+      {status === "error" && (
+        <p className="text-xs text-destructive">Failed to save. Please try again.</p>
+      )}
     </div>
   );
 }
