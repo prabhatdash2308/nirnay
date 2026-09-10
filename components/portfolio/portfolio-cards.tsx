@@ -1,14 +1,4 @@
-import { 
-  ShieldCheck, 
-  TrendingUp, 
-  Target, 
-  AlertCircle, 
-  ShieldAlert,
-  Car,
-  HeartPulse,
-  Landmark,
-  PiggyBank
-} from "lucide-react";
+import { Pencil, Trash2, ShieldCheck, TrendingUp, Target, AlertCircle, ShieldAlert, Car, HeartPulse, Landmark, PiggyBank } from "lucide-react";
 import type { InsurancePolicy, Investment, FinancialGoal } from "@/lib/types/portfolio";
 import type { AttentionItem } from "@/lib/portfolio/calculations";
 import { calculateGoalProgress } from "@/lib/portfolio/calculations";
@@ -18,28 +8,33 @@ function formatCurrency(amount: number | null | undefined): string {
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
-export function PolicyCard({ policy }: { policy: InsurancePolicy }) {
+interface CardActions {
+  onEdit?: () => void;
+  onDelete?: () => void;
+}
+
+export function PolicyCard({ policy, onEdit, onDelete }: { policy: InsurancePolicy } & CardActions) {
   const isHealth = policy.policy_type === "health";
   const isMotor = policy.policy_type === "motor";
   const Icon = isHealth ? HeartPulse : isMotor ? Car : ShieldCheck;
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
             <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground truncate">
               {policy.provider} • {policy.policy_type}
             </p>
-            <p className="mt-0.5 text-sm font-semibold text-foreground">
+            <p className="mt-0.5 text-sm font-semibold text-foreground truncate">
               {policy.policy_name}
             </p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="flex items-center gap-1 shrink-0">
           <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
             policy.status === "active" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" :
             policy.status === "expired" ? "bg-red-500/10 text-red-600 dark:text-red-400" :
@@ -47,6 +42,24 @@ export function PolicyCard({ policy }: { policy: InsurancePolicy }) {
           }`}>
             {policy.status}
           </span>
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              aria-label={`Edit ${policy.policy_name}`}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              aria-label={`Delete ${policy.policy_name}`}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-4 rounded-lg bg-muted/40 p-3 text-xs">
@@ -55,7 +68,7 @@ export function PolicyCard({ policy }: { policy: InsurancePolicy }) {
           <p className="mt-0.5 font-medium text-foreground">{formatCurrency(policy.sum_insured)}</p>
         </div>
         <div>
-          <p className="text-muted-foreground">Premium ({policy.premium_frequency})</p>
+          <p className="text-muted-foreground">Premium ({policy.premium_frequency ?? "—"})</p>
           <p className="mt-0.5 font-medium text-foreground">{formatCurrency(policy.premium_amount)}</p>
         </div>
       </div>
@@ -63,28 +76,28 @@ export function PolicyCard({ policy }: { policy: InsurancePolicy }) {
   );
 }
 
-export function InvestmentCard({ investment }: { investment: Investment }) {
+export function InvestmentCard({ investment, onEdit, onDelete }: { investment: Investment } & CardActions) {
   const isSip = investment.investment_type === "sip";
   const isMf = investment.investment_type === "mutual_fund";
   const Icon = isSip ? TrendingUp : isMf ? Landmark : PiggyBank;
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/10">
             <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </div>
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-              {investment.provider || "Self-managed"} • {investment.investment_type.replace('_', ' ')}
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground truncate">
+              {investment.provider || "Self-managed"} • {investment.investment_type.replace("_", " ")}
             </p>
             <p className="mt-0.5 text-sm font-semibold text-foreground line-clamp-1">
               {investment.scheme_name}
             </p>
           </div>
         </div>
-        <div className="text-right shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
             investment.status === "active" ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" :
             investment.status === "paused" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" :
@@ -92,6 +105,24 @@ export function InvestmentCard({ investment }: { investment: Investment }) {
           }`}>
             {investment.status}
           </span>
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              aria-label={`Edit ${investment.scheme_name}`}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              aria-label={`Delete ${investment.scheme_name}`}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
       <div className="mt-2 flex items-center justify-between rounded-lg bg-muted/40 p-3 text-xs">
@@ -108,27 +139,45 @@ export function InvestmentCard({ investment }: { investment: Investment }) {
   );
 }
 
-export function GoalCard({ goal }: { goal: FinancialGoal }) {
+export function GoalCard({ goal, onEdit, onDelete }: { goal: FinancialGoal } & CardActions) {
   const progress = calculateGoalProgress(goal.current_amount, goal.target_amount);
   
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/10">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-500/10">
             <Target className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-              {goal.goal_type.replace('_', ' ')}
+              {goal.goal_type.replace("_", " ")}
             </p>
-            <p className="mt-0.5 text-sm font-semibold text-foreground">
+            <p className="mt-0.5 text-sm font-semibold text-foreground truncate">
               {goal.name}
             </p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="flex items-center gap-1 shrink-0">
           <p className="text-sm font-semibold text-foreground">{progress}%</p>
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              aria-label={`Edit ${goal.name}`}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              aria-label={`Delete ${goal.name}`}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
       

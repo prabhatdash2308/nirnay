@@ -183,7 +183,59 @@ None — Phase 8 complete. Ready for Phase 9.
 
 ---
 
+## Current Phase
+
+None — Phase 9 complete. Ready for Phase 10.
+
+---
+
+### Phase 9 — Portfolio Lifecycle & Manage
+**Status:** COMPLETE
+
+#### Database Changes
+**No database migration required.**
+
+#### Files Created
+- `app/(app)/portfolio/manage-actions.ts`
+- `app/(app)/portfolio/manage-actions.test.mts`
+- `components/portfolio/policy-form.tsx`
+- `components/portfolio/investment-form.tsx`
+- `components/portfolio/goal-form.tsx`
+- `components/portfolio/confirm-delete-dialog.tsx`
+
+#### Files Modified
+- `components/portfolio/portfolio-cards.tsx` — added Edit/Delete action callbacks
+- `components/portfolio/portfolio-client.tsx` — full CRUD orchestration with modal state and refresh
+
+#### CRUD
+| Entity | Create | Update | Delete |
+|--------|--------|--------|--------|
+| Insurance Policy | ✓ | ✓ | ✓ |
+| Investment | ✓ | ✓ | ✓ |
+| Financial Goal | ✓ | ✓ | ✓ |
+
+#### Security
+- UID derived from verified Firebase token (never from client input)
+- `.eq("user_id", uid)` defense-in-depth on all mutations alongside RLS
+- Zod server-side validation on all inputs
+
+#### Data Honesty
+- No current value, CAGR, returns, or NAV added
+- Investments show `amount` as invested amount only
+
+#### Validation
+- `npm run lint` — 0 errors, 0 warnings
+- `npx tsc --noEmit` — passes
+- `npx vitest run` — 52 tests passed (21 new in manage-actions.test.mts)
+- `npm run build` — passes (25 routes)
+- `git diff --check` — passes
+
+#### Browser Testing
+Not executed (browser unavailable).
+
+---
+
 ## Next Phase
 
-### Phase 9 — TBD
+### Phase 10 — TBD
 **Scope:** TBD
