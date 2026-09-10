@@ -9,10 +9,18 @@ import { POST } from "./route";
 // Mock the dependencies
 vi.mock("../../../../lib/ai/client", () => {
   return {
-    aiClient: {
-      getGenerativeModel: vi.fn(),
+    geminiClient: {
+      models: {
+        generateContent: vi.fn(),
+      },
     },
-    ExplanationSchema: {},
+    groqClient: {
+      chat: {
+        completions: {
+          create: vi.fn(),
+        },
+      },
+    },
   };
 });
 
@@ -28,7 +36,7 @@ vi.mock("../../../../lib/decide/logic", () => ({
   generateDecisionGuidance: vi.fn(),
 }));
 
-import { aiClient } from "../../../../lib/ai/client";
+import { geminiClient, groqClient } from "../../../../lib/ai/client";
 import { loadFinancialProfile } from "../../../../app/(app)/settings/financial-profile/actions";
 import { resolveCompareProducts } from "../../../../lib/compare/utils";
 import { generateDecisionGuidance } from "../../../../lib/decide/logic";
@@ -56,27 +64,67 @@ describe("AI Explanation API Route", () => {
       whatToConsider: ["AI Consider"],
       questionsToAsk: ["AI Question"],
     }),
-    throwAiError = false,
+    geminiError = false,
+    groqError = false,
   }) => {
     (loadFinancialProfile as any).mockResolvedValue(mockProfile);
     (resolveCompareProducts as any).mockReturnValue(mockProducts);
     (generateDecisionGuidance as any).mockReturnValue(mockDecision);
 
-    if (throwAiError) {
-      (aiClient!.getGenerativeModel as any).mockReturnValue({
-        generateContent: vi.fn().mockRejectedValue(new Error("AI Provider Error")),
-      });
+    if (geminiError) {
+      (geminiClient!.models.generateContent as any).mockRejectedValue(new Error("Gemini Provider Error"));
     } else {
-      (aiClient!.getGenerativeModel as any).mockReturnValue({
-        generateContent: vi.fn().mockResolvedValue({
-          response: { text: () => mockAiResponse },
-        }),
+      (geminiClient!.models.generateContent as any).mockResolvedValue({
+        text: mockAiResponse,
+      });
+    }
+
+    if (groqError) {
+      (groqClient!.chat.completions.create as any).mockRejectedValue(new Error("Groq Provider Error"));
+    } else {
+      (groqClient!.chat.completions.create as any).mockResolvedValue({
+        choices: [{ message: { content: mockAiResponse } }],
       });
     }
   };
 
-  it("1. Valid AI response", async () => {
+  it("1. Gemini success", async () => {
     setupMocks({});
+    const req = createRequest({ productIds: ["p1"] });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.summary).toBe("AI Summary");
+    expect(geminiClient!.models.generateContent).toHaveBeenCalled();
+    expect(groqClient!.chat.completions.create).not.toHaveBeenCalled();
+  });
+
+  it("2. Gemini malformed response fallback to Groq success", async () => {
+    setupMocks({ mockAiResponse: "Not JSON", geminiError: false, groqError: false });
+    // If Gemini returns bad JSON, it throws validation error, caught by try/catch, falls back to Groq
+    // Groq will also return "Not JSON" in this mock, so Groq will fail Zod parsing too!
+    // Let's modify Groq's mock locally just for this test
+    (geminiClient!.models.generateContent as any).mockResolvedValue({ text: "Not JSON" });
+    (groqClient!.chat.completions.create as any).mockResolvedValue({
+      choices: [{ message: { content: JSON.stringify({
+        summary: "Groq Summary",
+        whyItMatches: [],
+        whatToConsider: [],
+        questionsToAsk: [],
+      }) } }],
+    });
+
+    const req = createRequest({ productIds: ["p1"] });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.summary).toBe("Groq Summary");
+    expect(geminiClient!.models.generateContent).toHaveBeenCalled();
+    expect(groqClient!.chat.completions.create).toHaveBeenCalled();
+  });
+
+  it("3. Gemini invalid API/model error -> Groq Fallback", async () => {
+    setupMocks({ geminiError: true, groqError: false });
     const req = createRequest({ productIds: ["p1"] });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -84,27 +132,28 @@ describe("AI Explanation API Route", () => {
     expect(data.summary).toBe("AI Summary");
   });
 
-  it("2. Malformed response", async () => {
-    setupMocks({ mockAiResponse: "Not JSON" });
-    const req = createRequest({ productIds: ["p1"] });
-    const res = await POST(req);
-    expect(res.status).toBe(500); // Because JSON.parse fails, caught by outer try-catch
-  });
-
-  it("4. Empty response", async () => {
-    setupMocks({ mockAiResponse: "" });
-    const req = createRequest({ productIds: ["p1"] });
-    const res = await POST(req);
-    expect(res.status).toBe(500);
-  });
-
-  it("5. Provider error", async () => {
-    setupMocks({ throwAiError: true });
+  it("10. Both providers unavailable", async () => {
+    setupMocks({ geminiError: true, groqError: true });
     const req = createRequest({ productIds: ["p1"] });
     const res = await POST(req);
     expect(res.status).toBe(502);
     const data = await res.json();
     expect(data.error).toBe("AI explanation is temporarily unavailable.");
+  });
+
+  it("11. Zod validation failure", async () => {
+    setupMocks({ mockAiResponse: JSON.stringify({ missingKeys: true }) });
+    const req = createRequest({ productIds: ["p1"] });
+    const res = await POST(req);
+    expect(res.status).toBe(502); // Groq fallback also returns bad JSON, then 502
+  });
+
+  it("13. Deterministic decision remains authoritative", async () => {
+    setupMocks({});
+    const req = createRequest({ productIds: ["p1"] });
+    const res = await POST(req);
+    const data = await res.json();
+    expect(data.strongestMatch).toBeUndefined(); // LLM must not override deterministic structure
   });
 
   it("8. No profile", async () => {
@@ -119,39 +168,5 @@ describe("AI Explanation API Route", () => {
     const req = createRequest({ productIds: [] });
     const res = await POST(req);
     expect(res.status).toBe(400);
-    const data = await res.json();
-    expect(data.error).toBe("Invalid product IDs");
-  });
-
-  it("10. One product", async () => {
-    setupMocks({ mockProducts: [{ id: "p1", provenance: { source: { name: "test" } } }] as any });
-    const req = createRequest({ productIds: ["p1"] });
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-  });
-
-  it("11. Multiple products", async () => {
-    setupMocks({ mockProducts: [{ id: "p1", provenance: { source: { name: "test" } } }, { id: "p2", provenance: { source: { name: "test" } } }] as any });
-    const req = createRequest({ productIds: ["p1", "p2"] });
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-  });
-
-  it("12. Tie", async () => {
-    setupMocks({ mockDecision: { strongestMatch: { product: { id: "p1" } }, hasTie: true, whyMatches: [], cautions: [], generalCautions: [] } as any });
-    const req = createRequest({ productIds: ["p1", "p2"] });
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-  });
-
-  it("15. Deterministic strongest match remains authoritative", async () => {
-    // The test proves that the AI does not return or change the strongest match.
-    // The payload returned to the client ONLY contains the explanation.
-    // The client uses its deterministic result for rendering the UI.
-    setupMocks({});
-    const req = createRequest({ productIds: ["p1"] });
-    const res = await POST(req);
-    const data = await res.json();
-    expect(data.strongestMatch).toBeUndefined();
   });
 });

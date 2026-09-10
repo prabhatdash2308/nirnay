@@ -1,14 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
-import { aiClient } from "../../../../lib/ai/client";
+import { geminiClient, groqClient } from "../../../../lib/ai/client";
 import { EXPLAIN_DECISION_SYSTEM_PROMPT } from "../../../../lib/ai/prompts";
 import { explanationResponseSchema, ExplanationResponseValidator } from "../../../../lib/ai/schemas";
 import { resolveCompareProducts } from "../../../../lib/compare/utils";
 import { loadFinancialProfile } from "../../../../app/(app)/settings/financial-profile/actions";
 import { generateDecisionGuidance } from "../../../../lib/decide/logic";
 
+async function generateExplanationWithGemini(prompt: string) {
+  if (!geminiClient) throw new Error("GEMINI_API_KEY is not configured.");
+  
+  const modelName = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+  const result = await geminiClient.models.generateContent({
+    model: modelName,
+    contents: prompt,
+    config: {
+      systemInstruction: EXPLAIN_DECISION_SYSTEM_PROMPT,
+      responseMimeType: "application/json",
+      responseSchema: explanationResponseSchema,
+      temperature: 0.1,
+    },
+  });
+  
+  let text = result.text || "";
+  if (text.startsWith("```json")) {
+    text = text.replace(/^```json\n?/, "").replace(/\n?```$/, "");
+  }
+  const rawJson = JSON.parse(text);
+  return ExplanationResponseValidator.parse(rawJson);
+}
+
+async function generateExplanationWithGroq(prompt: string) {
+  if (!groqClient) throw new Error("GROQ_API_KEY is not configured.");
+  
+  const modelName = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
+  const response = await groqClient.chat.completions.create({
+    model: modelName,
+    messages: [
+      { role: "system", content: EXPLAIN_DECISION_SYSTEM_PROMPT },
+      { role: "user", content: prompt }
+    ],
+    temperature: 0.1,
+    response_format: { 
+      type: "json_schema", 
+      json_schema: { 
+        name: "explanation", 
+        strict: true, 
+        schema: explanationResponseSchema as Record<string, unknown>
+      } 
+    }
+  });
+
+  const text = response.choices[0]?.message?.content || "";
+  const rawJson = JSON.parse(text);
+  return ExplanationResponseValidator.parse(rawJson);
+}
+
 export async function POST(req: NextRequest) {
   try {
-    if (!aiClient) {
+    if (!geminiClient && !groqClient) {
       return NextResponse.json(
         { error: "AI explanation is temporarily unavailable (Configuration missing)." },
         { status: 503 }
@@ -74,65 +123,38 @@ export async function POST(req: NextRequest) {
       },
     };
 
-    // 6. Call Gemini
-    const modelName = process.env.GEMINI_MODEL || "gemini-1.5-pro";
-    const model = aiClient.getGenerativeModel({
-      model: modelName,
-      systemInstruction: EXPLAIN_DECISION_SYSTEM_PROMPT,
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: explanationResponseSchema,
-        temperature: 0.1, // Keep it grounded
-      },
-    });
-
     const prompt = `Explain the following decision context:\n\n${JSON.stringify(aiContext, null, 2)}`;
     
-    let text = "";
+    // 6. Attempt Gemini (Primary)
     try {
-      const result = await model.generateContent(prompt);
-      text = result.response.text();
-    } catch (apiError) {
-      const err = apiError as Error & { status?: number };
-      console.error("[AI Explain] Gemini API Error:", {
+      const explanation = await generateExplanationWithGemini(prompt);
+      return NextResponse.json(explanation);
+    } catch (geminiError) {
+      const err = geminiError as Error & { status?: number };
+      console.warn("[AI Explain] Gemini Failed. Attempting Fallback.", {
         message: err?.message || "Unknown API error",
         status: err?.status,
-        model: modelName,
+        name: err?.name,
       });
-      return NextResponse.json(
-        { error: "AI explanation is temporarily unavailable." },
-        { status: 502 }
-      );
-    }
-    
-    // Strip markdown JSON block if present (sometimes model ignores responseMimeType)
-    if (text.startsWith("```json")) {
-      text = text.replace(/^```json\n?/, "").replace(/\n?```$/, "");
-    }
-    
-    let rawJson;
-    try {
-      rawJson = JSON.parse(text);
-    } catch (parseError) {
-      console.error("[AI Explain] JSON Parse Error:", { textPreview: text.substring(0, 100), error: (parseError as Error).message });
-      return NextResponse.json(
-        { error: "AI explanation is temporarily unavailable." },
-        { status: 500 }
-      );
-    }
-    
-    // Validate the structured response
-    const validation = ExplanationResponseValidator.safeParse(rawJson);
-    if (!validation.success) {
-      console.error("[AI Explain] Schema Validation Error:", validation.error.format());
-      return NextResponse.json(
-        { error: "AI explanation is temporarily unavailable." },
-        { status: 500 }
-      );
-    }
-    
-    return NextResponse.json(validation.data);
 
+      // 7. Attempt Groq (Fallback)
+      try {
+        const fallbackExplanation = await generateExplanationWithGroq(prompt);
+        return NextResponse.json(fallbackExplanation);
+      } catch (groqError) {
+        const fallbackErr = groqError as Error & { status?: number };
+        console.error("[AI Explain] Groq Fallback Failed.", {
+          message: fallbackErr?.message || "Unknown API error",
+          status: fallbackErr?.status,
+          name: fallbackErr?.name,
+        });
+
+        return NextResponse.json(
+          { error: "AI explanation is temporarily unavailable." },
+          { status: 502 }
+        );
+      }
+    }
   } catch (error) {
     const err = error as Error;
     console.error("[AI Explain] Unhandled Error:", {

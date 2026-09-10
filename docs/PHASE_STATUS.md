@@ -127,20 +127,22 @@ None — Phase 6 complete. Ready for Phase 7.
 - Root cause: Missing stable keys on mapped `Fragment` elements and nested `<tr>`/`<td>` items in `CompareClient`.
 - Fix: Assigned stable semantic keys using `section.title`, `row.label`, and `product.id` respectively. Prevented generic console warnings and potential reconciler bugs during client renders.
 
-#### AI Explanation Engine & Fixes
-- Architecture: API Route (`app/api/ai/explain-decision/route.ts`) handles secure LLM generation.
-- Model: Configurable via `GEMINI_MODEL` environment variable (defaults to `gemini-1.5-pro`).
-- Diagnosis: Encountered "AI explanation is temporarily unavailable" due to an invalid `GEMINI_API_KEY` mapped in `.env`. Enhanced server-side diagnostics to capture and gracefully log API errors safely without exposing secrets.
-- Prompting: Uses structured JSON schema via `Zod` (`ExplanationResponseValidator`) to enforce deterministic UI rendering and fail gracefully upon malformed outputs.
-- Security: Requires authenticated profile context loaded securely via Admin SDK server-side.
-- UI: Added `AIExplanationPanel` in Decide view.
-- Tests: 15 unit tests running on Vitest (`app/api/ai/explain-decision/route.test.mts`).
+#### AI Explanation Engine & Dual-Provider Fallback
+- Architecture: API Route (`app/api/ai/explain-decision/route.ts`) handles secure LLM generation with robust provider fallback (Gemini -> Groq -> Error).
+- SDK Migration: Migrated from legacy `@google/generative-ai` to Google's recommended `@google/genai` SDK.
+- Primary Model: Configurable via `GEMINI_MODEL` environment variable (defaults to `gemini-3.8-flash`).
+- Fallback Model: `groq-sdk` configured via `GROQ_MODEL` (defaults to `openai/gpt-oss-20b`).
+- Prompting: Enforces strict structured output (JSON Schema format) natively supported by both Google GenAI and Groq, validated subsequently via `Zod` (`ExplanationResponseValidator`) to enforce deterministic UI rendering.
+- Security: `GEMINI_API_KEY` and `GROQ_API_KEY` remain strictly server-side. Errors are logged securely without exposing raw secrets. No secrets are exposed to the client.
+- Trust Model: LLM output acts purely as an explanation. Deterministic suitability engine scores remain 100% authoritative and override LLM interpretation.
+- Free-tier Caveats: Uses free-tier models but rate limits and network errors will correctly trigger the secondary fallback or a safe "temporarily unavailable" UI.
 
 #### Validation
 - `npm run lint` — 0 errors
 - `npx tsc --noEmit` — passes
-- `npm run build` — passes (added Suspense boundaries to fix Next.js dynamic routing bailout)
-- `npx vitest run` — all suites pass (10 compare regression tests, 10 AI endpoint tests)
+- `npm run build` — passes
+- `npx vitest run` — all suites pass (provider fallback tests added for Gemini error -> Groq success)
+- Live Smoke Test: Confirmed both providers yield successful valid JSON without exposing keys in console.
 
 ---
 

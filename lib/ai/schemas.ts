@@ -1,30 +1,30 @@
-import { Schema, SchemaType } from "@google/generative-ai";
 import { z } from "zod";
 
-export const explanationResponseSchema: Schema = {
-  type: SchemaType.OBJECT,
+export const explanationResponseSchema = {
+  type: "object",
   properties: {
     summary: {
-      type: SchemaType.STRING,
+      type: "string",
       description: "A short, plain-language summary of why the strongest match aligns with the profile (or a generic explanation if no profile).",
     },
     whyItMatches: {
-      type: SchemaType.ARRAY,
-      items: { type: SchemaType.STRING },
+      type: "array",
+      items: { type: "string" },
       description: "List of reasons why the strongest match is suitable.",
     },
     whatToConsider: {
-      type: SchemaType.ARRAY,
-      items: { type: SchemaType.STRING },
+      type: "array",
+      items: { type: "string" },
       description: "Important limitations, cautions, or trade-offs for this option.",
     },
     questionsToAsk: {
-      type: SchemaType.ARRAY,
-      items: { type: SchemaType.STRING },
+      type: "array",
+      items: { type: "string" },
       description: "1-2 critical questions the user should ask the provider before buying.",
     },
   },
   required: ["summary", "whyItMatches", "whatToConsider", "questionsToAsk"],
+  additionalProperties: false,
 };
 
 export const ExplanationResponseValidator = z.object({
