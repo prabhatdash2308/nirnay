@@ -58,22 +58,48 @@ Zod schema, multi-step onboarding form, server actions with Firebase Admin verif
 
 ---
 
+### Phase 4 — Compare
+**Status:** ACCEPTED
+
+#### Compare Architecture
+- **URL-driven State:** `/compare?add=<id1>&add=<id2>` manages product selection. Shareable, deep-linkable, zero global state.
+- **Server-Side Validation:** Server Component parses `searchParams`, resolves IDs, deduplicates, enforces 3-product max, and drops invalid IDs silently.
+- **Client Hooks:** `useCompareSet` wraps `useRouter` to add/remove IDs from URL.
+
+#### Comparison Engine
+- **Data Driven:** Relies entirely on structured catalogue data. No LLM hallucinations.
+- **Category Aware:** Insurance products display indicative premium and coverage; investment products display SIP and expense ratio.
+- **Summary Generator:** `buildCompareSummary` synthesizes structured observations (e.g., risk spread, mixed-type warnings, cost comparisons) with clear `positive`/`caution`/`neutral` sentiments.
+- **Suitability Integration:** Integrates `computeSuitability` output to highlight best matches when a profile is set.
+
+#### UI Implementation
+- **Responsive Table:** Desktop scrollable comparison matrix; adaptable for mobile views.
+- **Graceful States:** Empty state (Browse CTA), 1-product state (Add Another CTA), Max-product limit warning.
+- **Cross-linking:** Discover cards and product detail pages successfully pass `?add=<productId>` directly into Compare.
+- **No Profile State:** Explains match is unavailable without crashing.
+
+#### Validation
+- `npm run lint` — 0 errors, 0 warnings
+- `npm run build` — exit 0, 22 routes (includes `compare` dynamic server route)
+- `npx tsx lib/compare/compare.test.mts` — 38/38 pass
+- `git diff --check` — exit 0
+
+---
+
 ## Current Phase
 
-None — Phase 3 complete. Ready for Phase 4.
+None — Phase 4 complete. Ready for Phase 5.
 
 ---
 
 ## Next Phase
 
-### Phase 4 — Compare
+### Phase 5 — Decide / Decision Support Foundation
 **Scope:**
-- `/compare` page — side-by-side comparison of 2–3 products
-- Comparison table: key attributes, cost, suitability, provenance
-- Add-to-compare from Discover card (the `?add=productId` hook is already wired)
-- Clear comparison, swap products
+- User decision flows
+- Watchlist management views
+- Portfolio projection/goals visualization
 
 ### Future Phases
-- Phase 5 — Watchlist, Portfolio, Goals pages
 - Phase 6 — AI Explanation Engine (structured LLM grounded on catalogue data)
 - Phase 7 — Calendar, Alerts, Renewal tracking
