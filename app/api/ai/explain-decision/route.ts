@@ -9,7 +9,7 @@ import { generateDecisionGuidance } from "../../../../lib/decide/logic";
 async function generateExplanationWithGemini(prompt: string) {
   if (!geminiClient) throw new Error("GEMINI_API_KEY is not configured.");
   
-  const modelName = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+  const modelName = process.env.GEMINI_MODEL || "gemini-3.7-flash";
   const result = await geminiClient.models.generateContent({
     model: modelName,
     contents: prompt,

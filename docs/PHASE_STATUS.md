@@ -130,12 +130,12 @@ None — Phase 6 complete. Ready for Phase 7.
 #### AI Explanation Engine & Dual-Provider Fallback
 - Architecture: API Route (`app/api/ai/explain-decision/route.ts`) handles secure LLM generation with robust provider fallback (Gemini -> Groq -> Error).
 - SDK Migration: Migrated from legacy `@google/generative-ai` to Google's recommended `@google/genai` SDK.
-- Primary Model: Configurable via `GEMINI_MODEL` environment variable (defaults to `gemini-3.8-flash`).
+- Primary Model: Configurable via `GEMINI_MODEL` environment variable (defaults to `gemini-3.7-flash`).
 - Fallback Model: `groq-sdk` configured via `GROQ_MODEL` (defaults to `openai/gpt-oss-20b`).
 - Prompting: Enforces strict structured output (JSON Schema format) natively supported by both Google GenAI and Groq, validated subsequently via `Zod` (`ExplanationResponseValidator`) to enforce deterministic UI rendering.
 - Security: `GEMINI_API_KEY` and `GROQ_API_KEY` remain strictly server-side. Errors are logged securely without exposing raw secrets. No secrets are exposed to the client.
 - Trust Model: LLM output acts purely as an explanation. Deterministic suitability engine scores remain 100% authoritative and override LLM interpretation.
-- Free-tier Caveats: Uses free-tier models but rate limits and network errors will correctly trigger the secondary fallback or a safe "temporarily unavailable" UI.
+- Free-tier Caveats: The MVP is configured for a free-tier/developer-quota-oriented provider architecture (Google Gemini API Free Tier and Groq developer API). Availability and rate limits are subject to current provider account quotas and policies.
 
 #### Validation
 - `npm run lint` — 0 errors
