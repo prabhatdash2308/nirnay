@@ -50,7 +50,6 @@ import { getFirebaseAdminAuth } from "../../app/lib/firebase-admin";
 import { loadFinancialProfile } from "../../app/(app)/settings/financial-profile/actions";
 import { getProductById } from "../../lib/catalogue/products";
 import { generateDecisionGuidance } from "../../lib/decide/logic";
-import { createClient } from "@supabase/supabase-js";
 
 describe("Decide Actions", () => {
   beforeEach(() => {

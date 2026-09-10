@@ -5,7 +5,7 @@ import {
   calculateGoalProgress,
   generateAttentionItems,
 } from "./calculations";
-import type { InsurancePolicy, Investment, FinancialGoal } from "../types/portfolio";
+import type { InsurancePolicy, Investment } from "../types/portfolio";
 
 describe("Portfolio Calculations", () => {
   describe("calculateTotalCoverage", () => {
@@ -65,17 +65,6 @@ describe("Portfolio Calculations", () => {
       expect(items.length).toBe(1);
       expect(items[0].id).toBe("renewal-1");
       expect(items[0].severity).toBe("warning");
-    });
-
-    it("generates performance info if investments exist", () => {
-      const investments: Partial<Investment>[] = [
-        { id: 1, status: "active", amount: 100 },
-      ];
-      
-      const items = generateAttentionItems([], investments as Investment[], []);
-      expect(items.length).toBe(1);
-      expect(items[0].id).toBe("investments-no-performance");
-      expect(items[0].severity).toBe("info");
     });
   });
 });

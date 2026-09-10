@@ -76,20 +76,7 @@ export function generateAttentionItems(
     }
   }
 
-  // 2. Missing Current Value context on Investments
-  // (We use this strictly to inform the user why performance isn't tracked)
-  const activeInvestments = investments.filter(i => i.status === "active");
-  if (activeInvestments.length > 0) {
-    items.push({
-      id: "investments-no-performance",
-      title: "Performance tracking unavailable",
-      detail: "Current-value tracking is not yet connected to your investments.",
-      href: "/portfolio",
-      severity: "info",
-    });
-  }
-
-  // 3. Goal behind (Very simplistic heuristic for demonstration)
+  // 2. Goal behind (Very simplistic heuristic for demonstration)
   // If a goal is active and target_date is in the past but progress < 100
   for (const goal of goals) {
     if (goal.status === "active" && goal.target_date) {

@@ -23,7 +23,6 @@ vi.mock("@supabase/supabase-js", () => ({
 
 import { loadPortfolioData } from "./actions";
 import { getFirebaseAdminAuth } from "../../lib/firebase-admin";
-import { createClient } from "@supabase/supabase-js";
 
 describe("Portfolio Actions", () => {
   beforeEach(() => {
