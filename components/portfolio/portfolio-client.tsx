@@ -57,9 +57,13 @@ type GoalModal =
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 export function PortfolioClient() {
+  // Distinct states:
+  //   authLoading: true  → Firebase still resolving initial auth state
+  //   idToken: null, authLoading: false → user is unauthenticated
+  //   dataError: true  → user is authenticated but the portfolio fetch failed
   const [data, setData] = useState<PortfolioData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [dataError, setDataError] = useState(false);
   const [idToken, setIdToken] = useState<string | null>(null);
 
   const [policyModal, setPolicyModal] = useState<PolicyModal>(null);
@@ -74,23 +78,27 @@ export function PortfolioClient() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
+      // Auth state is now known — stop showing the auth-loading spinner
+      setAuthLoading(false);
+
       if (!user) {
         setData(null);
-        setLoading(false);
+        setIdToken(null);
         return;
       }
+
       try {
         const token = await user.getIdToken();
         setIdToken(token);
         const portfolioData = await loadPortfolioData(token);
         setData(portfolioData);
       } catch (err) {
-        console.error(err);
-        setError(true);
-      } finally {
-        setLoading(false);
+        // Authenticated but data fetch failed — keep idToken so refresh works
+        console.error("[portfolio] Data load error:", err);
+        setDataError(true);
       }
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -152,7 +160,8 @@ export function PortfolioClient() {
 
   // ─── Loading / Error ──────────────────────────────────────────────────────
 
-  if (loading) {
+  // 1. Firebase is still resolving the initial auth state — show a neutral spinner
+  if (authLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-32">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -161,17 +170,57 @@ export function PortfolioClient() {
     );
   }
 
-  if (error || !data) {
+  // 2. Auth state is known but no user — unauthenticated
+  if (!idToken) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-sm font-medium text-foreground">Unable to load portfolio</p>
-        <p className="mt-1 text-xs text-muted-foreground">Please ensure you are signed in and try again.</p>
+        <p className="text-sm font-medium text-foreground">Sign in to view your portfolio</p>
+        <p className="mt-1 text-xs text-muted-foreground">Your financial data is private and requires authentication.</p>
         <Link
           href="/auth"
-          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           Sign In
         </Link>
+      </div>
+    );
+  }
+
+  // 3. Authenticated but the portfolio data request failed
+  if (dataError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-sm font-medium text-foreground">Unable to load portfolio</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Something went wrong while loading your financial data. Please try again.
+        </p>
+        <button
+          onClick={async () => {
+            setDataError(false);
+            if (idToken) {
+              try {
+                const portfolioData = await loadPortfolioData(idToken);
+                setData(portfolioData);
+              } catch (err) {
+                console.error("[portfolio] Retry failed:", err);
+                setDataError(true);
+              }
+            }
+          }}
+          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // 4. Data hasn't loaded yet (spinner while fetch is in-flight after auth confirmed)
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="mt-4 text-sm text-muted-foreground">Loading your portfolio...</p>
       </div>
     );
   }

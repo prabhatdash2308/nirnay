@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { onAuthStateChanged } from "firebase/auth";
+import { firebaseAuth } from "@/app/lib/firebase-client";
 import {
   logout,
   signInWithEmail,
@@ -8,282 +11,215 @@ import {
   signUpWithEmail,
 } from "@/app/lib/auth-client";
 import { getCurrentAuthRole } from "@/app/lib/auth-role";
-import { firebaseAuth } from "@/app/lib/firebase-client";
-import { supabase } from "@/app/lib/supabase-client";
+import { Loader2, ShieldCheck } from "lucide-react";
 
-export default function AuthTestPage() {
-  const [email, setEmail] = useState("your-test-email@example.com");
+export default function AuthPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  async function handleSignUp() {
+  // ── If already authenticated, redirect to /dashboard (no loop) ──────────
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      if (user) {
+        // Already signed in — go to dashboard without leaving /auth in history
+        router.replace("/dashboard");
+      } else {
+        setCheckingAuth(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  // ── Post-auth navigation ─────────────────────────────────────────────────
+  async function afterAuth() {
+    setMessage("Signed in successfully. Redirecting…");
+    setIsError(false);
+    // Brief pause so the user sees the success message before navigating
+    await new Promise<void>((r) => setTimeout(r, 300));
+    router.replace("/dashboard");
+  }
+
+  // ── Handlers ────────────────────────────────────────────────────────────
+  async function handleSignIn() {
+    if (!email || !password) {
+      setMessage("Please enter your email and password.");
+      setIsError(true);
+      return;
+    }
+    setBusy(true);
+    setIsError(false);
+    setMessage("Signing in…");
     try {
-      setMessage("Creating account...");
-
-      const user = await signUpWithEmail(email, password);
-      const auth = await getCurrentAuthRole();
-
-      setMessage(
-        `Authenticated successfully.\nUID: ${user.uid}\nRole: ${
-          auth?.role ?? "missing"
-        }`,
-      );
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Authentication failed.",
-      );
+      await signInWithEmail(email, password);
+      await getCurrentAuthRole();
+      await afterAuth();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Sign-in failed.");
+      setIsError(true);
+    } finally {
+      setBusy(false);
     }
   }
 
-  async function handleSignIn() {
+  async function handleSignUp() {
+    if (!email || !password) {
+      setMessage("Please enter your email and password.");
+      setIsError(true);
+      return;
+    }
+    setBusy(true);
+    setIsError(false);
+    setMessage("Creating account…");
     try {
-      setMessage("Signing in...");
-
-      const user = await signInWithEmail(email, password);
-      const auth = await getCurrentAuthRole();
-
-      setMessage(
-        `Signed in successfully.\nUID: ${user.uid}\nRole: ${
-          auth?.role ?? "missing"
-        }`,
-      );
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Authentication failed.",
-      );
+      await signUpWithEmail(email, password);
+      await getCurrentAuthRole();
+      await afterAuth();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Sign-up failed.");
+      setIsError(true);
+    } finally {
+      setBusy(false);
     }
   }
 
   async function handleGoogleSignIn() {
+    setBusy(true);
+    setIsError(false);
+    setMessage("Signing in with Google…");
     try {
-      setMessage("Signing in with Google...");
-
-      const user = await signInWithGoogle();
-      const auth = await getCurrentAuthRole();
-
-      setMessage(
-        `Google sign-in successful.\nUID: ${user.uid}\nRole: ${
-          auth?.role ?? "missing"
-        }`,
-      );
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Google authentication failed.",
-      );
+      await signInWithGoogle();
+      await getCurrentAuthRole();
+      await afterAuth();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Google sign-in failed.");
+      setIsError(true);
+    } finally {
+      setBusy(false);
     }
   }
 
   async function handleLogout() {
+    setBusy(true);
     try {
       await logout();
       setMessage("Signed out.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Sign out failed.",
-      );
+      setIsError(false);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Sign-out failed.");
+      setIsError(true);
+    } finally {
+      setBusy(false);
     }
   }
 
-  async function handleSupabaseTest() {
-    try {
-      setMessage("Testing Firebase -> Supabase Data API...");
-
-      const user = firebaseAuth.currentUser;
-
-      if (!user) {
-        throw new Error("No Firebase user is currently signed in.");
-      }
-
-      const { data, error } = await supabase
-        .from("auth_bridge_test")
-        .insert({
-          user_id: user.uid,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      setMessage(
-        `Firebase -> Supabase Data API successful.\n\n` +
-          `Firebase UID: ${user.uid}\n` +
-          `Supabase row ID: ${data.id}\n` +
-          `Stored user ID: ${data.user_id}\n` +
-          `Message: ${data.message}`,
-      );
-    } catch (error) {
-      if (error && typeof error === "object") {
-        const supabaseError = error as {
-          message?: string;
-          code?: string;
-          details?: string;
-          hint?: string;
-          status?: number;
-        };
-
-        setMessage(
-          [
-            "Firebase -> Supabase Data API test failed.",
-            "",
-            `Message: ${supabaseError.message ?? "unknown"}`,
-            `Code: ${supabaseError.code ?? "none"}`,
-            `Status: ${supabaseError.status ?? "none"}`,
-            `Details: ${supabaseError.details ?? "none"}`,
-            `Hint: ${supabaseError.hint ?? "none"}`,
-          ].join("\n"),
-        );
-      } else {
-        setMessage("Firebase -> Supabase Data API test failed.");
-      }
-    }
+  // ── Auth loading state ──────────────────────────────────────────────────
+  if (checkingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
-  async function handleProfileTest() {
-    try {
-      setMessage("Testing NIRNAY user profile...");
-
-      const user = firebaseAuth.currentUser;
-
-      if (!user) {
-        throw new Error("No Firebase user is currently signed in.");
-      }
-
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .upsert(
-          {
-            user_id: user.uid,
-            full_name: user.displayName ?? "NIRNAY Test User",
-            email: user.email ?? email,
-            avatar_url: user.photoURL ?? null,
-          },
-          {
-            onConflict: "user_id",
-          },
-        )
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      setMessage(
-        `NIRNAY user profile test successful.\n\n` +
-          `Firebase UID: ${user.uid}\n` +
-          `Profile ID: ${data.id}\n` +
-          `Name: ${data.full_name}\n` +
-          `Email: ${data.email}\n` +
-          `Stored user ID: ${data.user_id}`,
-      );
-    } catch (error) {
-      if (error && typeof error === "object") {
-        const supabaseError = error as {
-          message?: string;
-          code?: string;
-          details?: string;
-          hint?: string;
-          status?: number;
-        };
-
-        setMessage(
-          [
-            "NIRNAY user profile test failed.",
-            "",
-            `Message: ${supabaseError.message ?? "unknown"}`,
-            `Code: ${supabaseError.code ?? "none"}`,
-            `Status: ${supabaseError.status ?? "none"}`,
-            `Details: ${supabaseError.details ?? "none"}`,
-            `Hint: ${supabaseError.hint ?? "none"}`,
-          ].join("\n"),
-        );
-      } else {
-        setMessage("NIRNAY user profile test failed.");
-      }
-    }
-  }
-
+  // ── Sign-in form ────────────────────────────────────────────────────────
   return (
-    <main className="flex min-h-screen items-center justify-center p-8">
-      <div className="w-full max-w-xl space-y-6">
-        <div>
-          <h1 className="text-3xl font-semibold">NIRNAY Auth Test</h1>
-
-          <p className="text-muted-foreground">
-            Temporary authentication and database integration test.
+    <main className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="w-full max-w-sm space-y-6">
+        {/* Brand */}
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+            <ShieldCheck className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            NIRNAY
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Sign in to your financial copilot
           </p>
         </div>
 
-        <div className="space-y-4">
+        {/* Form */}
+        <div className="space-y-3">
           <input
-            className="w-full rounded-md border p-3"
+            id="auth-email"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             type="email"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Email"
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email address"
+            disabled={busy}
+            autoComplete="email"
           />
-
           <input
-            className="w-full rounded-md border p-3"
+            id="auth-password"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             type="password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
+            disabled={busy}
+            autoComplete="current-password"
+            onKeyDown={(e) => { if (e.key === "Enter") handleSignIn(); }}
           />
 
           <div className="grid grid-cols-2 gap-3">
             <button
-              className="rounded-md border p-3"
+              id="auth-signin-btn"
               onClick={handleSignIn}
+              disabled={busy}
+              className="flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-60"
             >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               Sign in
             </button>
-
             <button
-              className="rounded-md bg-black p-3 text-white"
+              id="auth-signup-btn"
               onClick={handleSignUp}
+              disabled={busy}
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
             >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               Sign up
             </button>
           </div>
 
           <button
-            className="w-full rounded-md border p-3"
+            id="auth-google-btn"
             onClick={handleGoogleSignIn}
+            disabled={busy}
+            className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-60"
           >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
             Continue with Google
           </button>
 
           <button
-            className="w-full rounded-md border p-3"
+            id="auth-signout-btn"
             onClick={handleLogout}
+            disabled={busy}
+            className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors disabled:opacity-60"
           >
             Sign out
           </button>
-
-          <button
-            className="w-full rounded-md border p-3"
-            onClick={handleSupabaseTest}
-          >
-            Test Firebase -&gt; Supabase
-          </button>
-
-          <button
-            className="w-full rounded-md bg-black p-3 text-white"
-            onClick={handleProfileTest}
-          >
-            Test NIRNAY User Profile
-          </button>
         </div>
 
+        {/* Status message */}
         {message && (
-          <pre className="whitespace-pre-wrap rounded-md border p-4 text-sm">
+          <div
+            className={`rounded-lg px-4 py-3 text-sm ${
+              isError
+                ? "border border-destructive/20 bg-destructive/10 text-destructive"
+                : "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+            }`}
+          >
             {message}
-          </pre>
+          </div>
         )}
       </div>
     </main>
