@@ -15,10 +15,12 @@ import {
   addFinancialGoal,
   updateFinancialGoal,
   deleteFinancialGoal,
+} from "@/app/(app)/portfolio/manage-actions";
+import {
   type AddPolicyInput,
   type AddInvestmentInput,
   type AddGoalInput,
-} from "@/app/(app)/portfolio/manage-actions";
+} from "@/lib/portfolio/schemas";
 import type { PortfolioData, InsurancePolicy, Investment, FinancialGoal } from "@/lib/types/portfolio";
 import {
   calculateTotalCoverage,

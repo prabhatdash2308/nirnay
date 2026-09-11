@@ -30,29 +30,65 @@ export async function loadPortfolioData(
 ): Promise<PortfolioData> {
   // 1. Verify token & get UID implicitly via Supabase RLS (but we verify anyway for safety)
   const adminAuth = getFirebaseAdminAuth();
-  await adminAuth.verifyIdToken(firebaseIdToken);
+  const decoded = await adminAuth.verifyIdToken(firebaseIdToken);
+  console.log("[load-portfolio] Token verified. UID:", decoded.uid, "role:", decoded.role ?? "(none)");
+  console.log("[load-portfolio] Token length:", firebaseIdToken.length);
 
   const supabase = buildSupabaseWithToken(firebaseIdToken);
 
-  // Parallel fetch from the 3 tables
-  const [policiesRes, investmentsRes, goalsRes] = await Promise.all([
-    supabase.from("insurance_policies").select("*").order("created_at", { ascending: false }),
-    supabase.from("investments").select("*").order("created_at", { ascending: false }),
-    supabase.from("financial_goals").select("*").order("created_at", { ascending: false }),
-  ]);
+  // ─── Sequential queries to isolate which table fails ─────────────────────
+  console.log("[load-portfolio] Querying insurance_policies...");
+  const policiesRes = await supabase
+    .from("insurance_policies")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (policiesRes.error) {
-    console.error("[load-portfolio] Policies error:", policiesRes.error.message);
+    console.error("[load-portfolio] insurance_policies FAILED", {
+      code: policiesRes.error.code,
+      message: policiesRes.error.message,
+      details: policiesRes.error.details,
+      hint: policiesRes.error.hint,
+    });
     throw new Error("Failed to load insurance policies.");
   }
+  console.log("[load-portfolio] insurance_policies OK, rows:", policiesRes.data?.length ?? 0);
+
+  console.log("[load-portfolio] Querying investments...");
+  const investmentsRes = await supabase
+    .from("investments")
+    .select("*")
+    .order("created_at", { ascending: false });
+
   if (investmentsRes.error) {
-    console.error("[load-portfolio] Investments error:", investmentsRes.error.message);
+    console.error("[load-portfolio] investments FAILED", {
+      code: investmentsRes.error.code,
+      message: investmentsRes.error.message,
+      details: investmentsRes.error.details,
+      hint: investmentsRes.error.hint,
+    });
     throw new Error("Failed to load investments.");
   }
+  console.log("[load-portfolio] investments OK, rows:", investmentsRes.data?.length ?? 0);
+
+  console.log("[load-portfolio] Querying financial_goals...");
+  const goalsRes = await supabase
+    .from("financial_goals")
+    .select("*")
+    .order("created_at", { ascending: false });
+
   if (goalsRes.error) {
-    console.error("[load-portfolio] Goals error:", goalsRes.error.message);
+    console.error("[load-portfolio] financial_goals FAILED", {
+      code: goalsRes.error.code,
+      message: goalsRes.error.message,
+      details: goalsRes.error.details,
+      hint: goalsRes.error.hint,
+    });
     throw new Error("Failed to load financial goals.");
   }
+  console.log("[load-portfolio] financial_goals OK, rows:", goalsRes.data?.length ?? 0);
+
+  console.log("[load-portfolio] All queries succeeded. Returning data.");
 
   return {
     policies: policiesRes.data as InsurancePolicy[],

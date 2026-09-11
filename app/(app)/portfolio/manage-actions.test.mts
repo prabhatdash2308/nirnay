@@ -51,10 +51,13 @@ import {
   addFinancialGoal,
   updateFinancialGoal,
   deleteFinancialGoal,
+} from "./manage-actions";
+
+import {
   addPolicyInputSchema,
   addInvestmentInputSchema,
   addGoalInputSchema,
-} from "./manage-actions";
+} from "../../../lib/portfolio/schemas";
 
 import { getFirebaseAdminAuth } from "../../lib/firebase-admin";
 

@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Loader2, X } from "lucide-react";
 import type { FinancialGoal } from "@/lib/types/portfolio";
-import type { AddGoalInput } from "@/app/(app)/portfolio/manage-actions";
+import type { AddGoalInput } from "@/lib/portfolio/schemas";
 
 interface GoalFormProps {
   initial?: Partial<FinancialGoal>;

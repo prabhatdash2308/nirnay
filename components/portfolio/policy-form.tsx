@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Loader2, X } from "lucide-react";
 import type { InsurancePolicy } from "@/lib/types/portfolio";
-import type { AddPolicyInput } from "@/app/(app)/portfolio/manage-actions";
+import type { AddPolicyInput } from "@/lib/portfolio/schemas";
 
 interface PolicyFormProps {
   initial?: Partial<InsurancePolicy>;

@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Loader2, X } from "lucide-react";
 import type { Investment } from "@/lib/types/portfolio";
-import type { AddInvestmentInput } from "@/app/(app)/portfolio/manage-actions";
+import type { AddInvestmentInput } from "@/lib/portfolio/schemas";
 
 interface InvestmentFormProps {
   initial?: Partial<Investment>;
