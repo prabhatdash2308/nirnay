@@ -13,6 +13,11 @@ function buildSupabaseWithToken(firebaseIdToken: string) {
   }
 
   return createClient(supabaseUrl, supabasePublishableKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${firebaseIdToken}`,
+      },
+    },
     accessToken: async () => firebaseIdToken,
   });
 }
