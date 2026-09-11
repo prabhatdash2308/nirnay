@@ -9,10 +9,11 @@ interface GoalFormProps {
   initial?: Partial<FinancialGoal>;
   onSave: (data: AddGoalInput) => Promise<void>;
   onCancel: () => void;
+  onDelete?: (id: number) => Promise<void>;
   title: string;
 }
 
-export function GoalForm({ initial, onSave, onCancel, title }: GoalFormProps) {
+export function GoalForm({ initial, onSave, onCancel, onDelete, title }: GoalFormProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -207,20 +208,34 @@ export function GoalForm({ initial, onSave, onCancel, title }: GoalFormProps) {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              className="flex-1 rounded-lg border border-input bg-background px-4 py-2 text-sm font-semibold hover:bg-accent transition-colors"
             >
               Cancel
             </button>
+            {initial && onDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (initial.id !== undefined) {
+                    onDelete(initial.id);
+                  }
+                }}
+                disabled={saving}
+                className="flex-1 rounded-lg border border-red-200 bg-red-50 text-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                Delete
+              </button>
+            )}
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors"
+              className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center"
             >
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {saving ? "Saving..." : "Save Goal"}
             </button>
           </div>

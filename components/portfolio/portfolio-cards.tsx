@@ -1,12 +1,7 @@
 import { Pencil, Trash2, ShieldCheck, TrendingUp, Target, AlertCircle, ShieldAlert, Car, HeartPulse, Landmark, PiggyBank } from "lucide-react";
 import type { InsurancePolicy, Investment, FinancialGoal } from "@/lib/types/portfolio";
 import type { AttentionItem } from "@/lib/portfolio/calculations";
-import { calculateGoalProgress } from "@/lib/portfolio/calculations";
-
-function formatCurrency(amount: number | null | undefined): string {
-  if (amount == null) return "N/A";
-  return `₹${amount.toLocaleString("en-IN")}`;
-}
+import { calculateGoalProgress, formatCurrency } from "@/lib/portfolio/calculations";
 
 interface CardActions {
   onEdit?: () => void;

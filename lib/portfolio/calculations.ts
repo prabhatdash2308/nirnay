@@ -4,6 +4,11 @@ import type { InsurancePolicy, Investment, FinancialGoal } from "@/lib/types/por
 // Calculation Utilities
 // ─────────────────────────────────────────────────────────────────────────────
 
+export function formatCurrency(amount: number | null | undefined): string {
+  if (amount == null) return "N/A";
+  return `₹${amount.toLocaleString("en-IN")}`;
+}
+
 export function calculateTotalCoverage(policies: InsurancePolicy[]): number {
   return policies
     .filter((p) => p.status === "active")

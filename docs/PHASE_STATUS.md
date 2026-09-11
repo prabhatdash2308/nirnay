@@ -306,7 +306,66 @@ Not executed (browser subagent unavailable due to capacity limitations).
 
 ---
 
+## Current Phase
+
+None — Phase 10 complete. Ready for Phase 11.
+
+---
+
+### Phase 11A — Goals Management Experience
+**Status:** COMPLETE
+
+#### Features
+- **Goals Route:** `/goals` serves as the centralized interface for managing financial priorities.
+- **Goal Calculations:** `lib/goals/calculations.ts` provides pure, deterministic math to clamp progress (`0-100%`) and aggregate summary metrics (total saved, total target, active count, needs attention).
+- **CRUD Reuse:** The UI orchestrates existing Phase 9 Portfolio server actions (`addFinancialGoal`, `updateFinancialGoal`, `deleteFinancialGoal`) to manage goals with exactly zero duplicated backend logic.
+- **Calendar Integration:** `components/goals/goal-card.tsx` natively reuses Calendar phase logic (`calcDaysFromToday`, `calcUrgency`, `formatDaysLabel`) to deterministically style and label urgent target dates exactly identically to the `/calendar` view.
+- **Delete Confirmation:** Leverages `components/portfolio/confirm-delete-dialog.tsx` to safely prevent accidental 1-click deletions within the edit flow.
+
+#### Database Changes
+**No migration required.** Reused `financial_goals` table precisely.
+
+#### Files Created
+- `app/(app)/goals/actions.ts`
+- `app/(app)/goals/actions.test.mts`
+- `app/(app)/goals/page.tsx`
+- `components/goals/goals-client.tsx`
+- `components/goals/goal-card.tsx`
+- `lib/goals/calculations.ts`
+- `lib/goals/calculations.test.mts`
+
+#### Files Modified
+- `components/portfolio/goal-form.tsx` (Added optional `onDelete` to reuse layout)
+- `components/portfolio/portfolio-cards.tsx` (Extracted `formatCurrency` to lib)
+- `lib/portfolio/calculations.ts` (Exported `formatCurrency`)
+- `docs/PHASE_STATUS.md`
+
+#### Validation
+- `npm run lint` — 0 errors, 0 warnings
+- `npx tsc --noEmit` — passes perfectly
+- `npx vitest run` — 114 tests passed (12 new in `lib/goals/calculations.test.mts`, 2 new in `app/(app)/goals/actions.test.mts`)
+- `npm run build` — passes, 27 routes including `/goals`
+- `git diff --check` — passes cleanly
+
+#### Browser Testing
+Tested fully via browser subagent:
+- Verified `/goals` redirects unauthenticated users to `/auth`.
+- Logged in, verified empty state.
+- Created "Emergency Fund Test", verified 30% progress bar, and summary recalculation.
+- Edited goal and canceled out.
+- Initiated Delete, verified `ConfirmDeleteDialog` safeguard appeared.
+- Confirmed Deletion, verified goal disappeared and state persisted.
+
+#### Security
+- Route requires valid Firebase ID token.
+- `loadGoalsData` natively verifies token server-side before attaching `Authorization: Bearer <token>` to the Supabase client.
+- No client-provided UID trusted.
+- `SUPABASE_SECRET_KEY` remains isolated server-side.
+
+---
+
 ## Next Phase
 
-### Phase 11 — TBD
+### Phase 11B — TBD
 **Scope:** TBD
+
