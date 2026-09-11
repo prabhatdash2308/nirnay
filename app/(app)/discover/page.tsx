@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DiscoverBootstrap } from "@/components/discover/discover-bootstrap";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Discover",
@@ -20,6 +20,14 @@ export default function DiscoverPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Explore insurance and investment products. Your profile shapes the
           match score — it is not financial advice.
+        </p>
+      </div>
+
+      {/* Trust / Simulated Data Disclosure */}
+      <div className="flex items-start gap-3 rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <p>
+          <strong className="font-medium text-foreground">Simulated marketplace data</strong> — Insurance and investment products shown here use simulated data for this prototype. Product details, prices, returns and availability are not live offers.
         </p>
       </div>
 
