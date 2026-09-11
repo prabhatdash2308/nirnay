@@ -1,4 +1,5 @@
 import type { InsurancePolicy, Investment, FinancialGoal } from "@/lib/types/portfolio";
+// Force Turbopack cache invalidation
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Calculation Utilities
