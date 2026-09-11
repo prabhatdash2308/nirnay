@@ -235,7 +235,78 @@ Not executed (browser unavailable).
 
 ---
 
+---
+
+### Phase 10 — Financial Calendar + Renewals + Action Center
+**Status:** COMPLETE
+
+#### Features
+- **Financial Calendar Route:** `/calendar` serves as the centralized view for all upcoming financial events.
+- **Deterministic Event Engine:** `lib/calendar/calculations.ts` builds calendar events from three real data sources with no fabricated data:
+  - `financial_calendar` table (manually created user reminders/events)
+  - `insurance_policies.renewal_date` (derived renewal events for active policies)
+  - `financial_goals.target_date` (derived goal milestone events for active goals)
+- **Investments excluded by design:** No reliable due-date field exists in the `investments` schema; investment events are intentionally omitted.
+- **Urgency Classification:** Events are deterministically labeled: `overdue`, `today`, `this_week`, `this_month`, `upcoming`.
+- **Renewal Intelligence:** Every active policy with a `renewal_date` generates a calendar event with `formatDaysLabel` ("In 12 days", "Overdue by 3 days", "Due today"), and links to `/discover` for reviewing options.
+- **Action Center:** "Needs Attention" section shows overdue + today + this_week events prominently.
+- **Event Deduplication:** Stable IDs (`db-{id}`, `policy-renewal-{id}`, `goal-milestone-{id}`) prevent duplicates across sources.
+- **Empty State:** Dedicated empty calendar state with CTAs to Portfolio and Discover.
+
+#### Architecture
+- Server action: `app/(app)/calendar/actions.ts` — `loadCalendarData(firebaseIdToken)`
+- Types: `lib/types/calendar.ts` — `CalendarEvent`, `FinancialCalendarRow`, `CalendarData`
+- Calculations: `lib/calendar/calculations.ts` — pure, deterministic, fully testable
+- UI: `components/calendar/calendar-client.tsx` — full auth state machine (authLoading → unauthenticated → dataError → data loading → loaded)
+- Page: `app/(app)/calendar/page.tsx`
+
+#### Authentication
+- Client provides Firebase ID token only (never a user_id)
+- Server calls `verifyIdToken()` before touching Supabase
+- Supabase client uses explicit `Authorization: Bearer <token>` header (Phase 9 pattern)
+- RLS: `user_id = (auth.jwt() ->> 'sub')` enforced on all three tables
+
+#### Data Honesty
+- No prices, savings, returns, or CAGR claimed
+- No renewal cost estimates
+- Action links to `/discover` only (no fake product IDs)
+- No fabricated event dates — only actual `renewal_date` and `target_date` from the database
+
+#### Database Changes
+**No migration required.** All existing tables (`financial_calendar`, `insurance_policies`, `financial_goals`) were sufficient. The existing RLS policies for `financial_calendar` were already present in migration `20260909094445`.
+
+#### Files Created
+- `lib/types/calendar.ts`
+- `lib/calendar/calculations.ts`
+- `lib/calendar/calculations.test.mts`
+- `app/(app)/calendar/actions.ts`
+- `app/(app)/calendar/actions.test.mts`
+- `app/(app)/calendar/page.tsx`
+- `components/calendar/calendar-client.tsx`
+
+#### Files Modified
+- `docs/PHASE_STATUS.md` (this file)
+
+#### Validation
+- `npm run lint` — 0 errors, 1 pre-existing warning (scratch file, not production)
+- `npx tsc --noEmit` — passes perfectly
+- `npx vitest run` — 100 tests passed (38 new calculations tests + 10 new action tests)
+- `npm run build` — passes, 26 routes including `/calendar`
+- `git diff --check` — passes, no whitespace errors
+
+#### Browser Testing
+Not executed (browser subagent unavailable due to capacity limitations).
+
+#### Security
+- No SUPABASE_SECRET_KEY in any client code
+- No Firebase service-account data exposed
+- No token or password logging
+- No public RLS policies added
+- No client-provided UID trusted
+
+---
+
 ## Next Phase
 
-### Phase 10 — TBD
+### Phase 11 — TBD
 **Scope:** TBD
