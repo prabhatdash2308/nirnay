@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Loader2, Plus, Target, PiggyBank, AlertTriangle } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
+import { firebaseAuth } from "@/app/lib/firebase-client";
 import type { FinancialGoal } from "@/lib/types/portfolio";
 import { type AddGoalInput } from "@/lib/portfolio/schemas";
 import {
@@ -18,11 +20,7 @@ import { GoalForm } from "@/components/portfolio/goal-form";
 import { GoalCard } from "./goal-card";
 import { ConfirmDeleteDialog } from "@/components/portfolio/confirm-delete-dialog";
 
-interface GoalsClientProps {
-  firebaseIdToken: string;
-}
-
-export function GoalsClient({ firebaseIdToken }: GoalsClientProps) {
+export function GoalsClient() {
   const [goals, setGoals] = useState<FinancialGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +30,13 @@ export function GoalsClient({ firebaseIdToken }: GoalsClientProps) {
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
   const [deletingGoalId, setDeletingGoalId] = useState<number | null>(null);
 
-  async function fetchGoals() {
+  const [idToken, setIdToken] = useState<string | null>(null);
+
+  const fetchGoals = useCallback(async (token: string) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await loadGoalsData(firebaseIdToken);
+      const data = await loadGoalsData(token);
       setGoals(data);
     } catch (err) {
       console.error(err);
@@ -44,31 +44,50 @@ export function GoalsClient({ firebaseIdToken }: GoalsClientProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchGoals();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firebaseIdToken]);
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
+      if (!user) {
+        setGoals([]);
+        setIdToken(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const token = await user.getIdToken();
+        setIdToken(token);
+        await fetchGoals(token);
+      } catch (err) {
+        console.error("Failed to authenticate goals request:", err);
+        setError("Failed to authenticate.");
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [fetchGoals]);
 
   // Handlers
   async function handleAddGoal(input: AddGoalInput) {
-    await addFinancialGoal(firebaseIdToken, input);
-    await fetchGoals();
+    if (!idToken) return;
+    await addFinancialGoal(idToken, input);
+    await fetchGoals(idToken);
     setIsAddOpen(false);
   }
 
   async function handleUpdateGoal(input: AddGoalInput) {
-    if (!editingGoal) return;
-    await updateFinancialGoal(firebaseIdToken, editingGoal.id, input);
-    await fetchGoals();
+    if (!editingGoal || !idToken) return;
+    await updateFinancialGoal(idToken, editingGoal.id, input);
+    await fetchGoals(idToken);
     setEditingGoal(null);
   }
 
   async function handleDeleteGoal(id: number) {
-    await deleteFinancialGoal(firebaseIdToken, id);
-    await fetchGoals();
+    if (!idToken) return;
+    await deleteFinancialGoal(idToken, id);
+    await fetchGoals(idToken);
     setDeletingGoalId(null);
     if (editingGoal?.id === id) {
       setEditingGoal(null);
@@ -90,7 +109,7 @@ export function GoalsClient({ firebaseIdToken }: GoalsClientProps) {
         <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
         <h3 className="text-xl font-bold mb-2">Unable to load goals</h3>
         <p className="text-muted-foreground mb-6 max-w-md">{error}</p>
-        <Button onClick={fetchGoals}>Try Again</Button>
+        <Button onClick={() => idToken && fetchGoals(idToken)}>Try Again</Button>
       </div>
     );
   }
