@@ -16,7 +16,7 @@ export function RecommendationSection() {
               Every recommendation shows you exactly why.
             </h2>
             <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-              NIRNAY does not act like a black box that simply says "BUY THIS." 
+              NIRNAY does not act like a black box that simply says &quot;BUY THIS.&quot; 
               Instead, it acts as a translation layer—taking raw facts, calculating them against your profile, and using AI to explain the trade-offs in plain language.
             </p>
             <ul className="space-y-4 mb-10">
