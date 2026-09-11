@@ -5,18 +5,21 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { firebaseAuth } from "@/app/lib/firebase-client";
 import {
-  logout,
   signInWithEmail,
   signInWithGoogle,
   signUpWithEmail,
 } from "@/app/lib/auth-client";
 import { getCurrentAuthRole } from "@/app/lib/auth-role";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { loadFinancialProfile } from "@/app/(app)/settings/financial-profile/actions";
+import { Loader2 } from "lucide-react";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { LoginForm } from "@/components/auth/login-form";
+import { SignupForm } from "@/components/auth/signup-form";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 
 export default function AuthPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -38,25 +41,41 @@ export default function AuthPage() {
 
   // ── Post-auth navigation ─────────────────────────────────────────────────
   async function afterAuth() {
-    setMessage("Signed in successfully. Redirecting…");
+    setMessage("Authentication successful. Redirecting…");
     setIsError(false);
-    // Brief pause so the user sees the success message before navigating
-    await new Promise<void>((r) => setTimeout(r, 300));
-    router.replace("/dashboard");
+    
+    try {
+      const user = firebaseAuth.currentUser;
+      if (!user) {
+        router.replace("/");
+        return;
+      }
+      const idToken = await user.getIdToken();
+      
+      const profile = await loadFinancialProfile(idToken);
+      
+      // Brief pause so the user sees the success message before navigating
+      await new Promise<void>((r) => setTimeout(r, 300));
+      
+      if (profile) {
+        router.replace("/dashboard");
+      } else {
+        router.replace("/settings/financial-profile");
+      }
+    } catch (err) {
+      console.error("Error loading profile during auth:", err);
+      // Fallback to dashboard if profile fetch fails
+      router.replace("/dashboard");
+    }
   }
 
   // ── Handlers ────────────────────────────────────────────────────────────
-  async function handleSignIn() {
-    if (!email || !password) {
-      setMessage("Please enter your email and password.");
-      setIsError(true);
-      return;
-    }
+  async function handleSignIn(email: string, pass: string) {
     setBusy(true);
     setIsError(false);
-    setMessage("Signing in…");
+    setMessage("");
     try {
-      await signInWithEmail(email, password);
+      await signInWithEmail(email, pass);
       await getCurrentAuthRole();
       await afterAuth();
     } catch (err) {
@@ -67,17 +86,12 @@ export default function AuthPage() {
     }
   }
 
-  async function handleSignUp() {
-    if (!email || !password) {
-      setMessage("Please enter your email and password.");
-      setIsError(true);
-      return;
-    }
+  async function handleSignUp(email: string, pass: string) {
     setBusy(true);
     setIsError(false);
-    setMessage("Creating account…");
+    setMessage("");
     try {
-      await signUpWithEmail(email, password);
+      await signUpWithEmail(email, pass);
       await getCurrentAuthRole();
       await afterAuth();
     } catch (err) {
@@ -91,7 +105,7 @@ export default function AuthPage() {
   async function handleGoogleSignIn() {
     setBusy(true);
     setIsError(false);
-    setMessage("Signing in with Google…");
+    setMessage("");
     try {
       await signInWithGoogle();
       await getCurrentAuthRole();
@@ -104,124 +118,89 @@ export default function AuthPage() {
     }
   }
 
-  async function handleLogout() {
-    setBusy(true);
-    try {
-      await logout();
-      setMessage("Signed out.");
-      setIsError(false);
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Sign-out failed.");
-      setIsError(true);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   // ── Auth loading state ──────────────────────────────────────────────────
   if (checkingAuth) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  // ── Sign-in form ────────────────────────────────────────────────────────
+  // ── Auth UI ─────────────────────────────────────────────────────────────
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-6">
-      <div className="w-full max-w-sm space-y-6">
-        {/* Brand */}
-        <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <ShieldCheck className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            NIRNAY
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Sign in to your financial copilot
-          </p>
-        </div>
-
-        {/* Form */}
-        <div className="space-y-3">
-          <input
-            id="auth-email"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email address"
-            disabled={busy}
-            autoComplete="email"
-          />
-          <input
-            id="auth-password"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            disabled={busy}
-            autoComplete="current-password"
-            onKeyDown={(e) => { if (e.key === "Enter") handleSignIn(); }}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              id="auth-signin-btn"
-              onClick={handleSignIn}
-              disabled={busy}
-              className="flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-60"
-            >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              Sign in
-            </button>
-            <button
-              id="auth-signup-btn"
-              onClick={handleSignUp}
-              disabled={busy}
-              className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60"
-            >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              Sign up
-            </button>
-          </div>
-
-          <button
-            id="auth-google-btn"
-            onClick={handleGoogleSignIn}
-            disabled={busy}
-            className="w-full flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-60"
-          >
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-            Continue with Google
-          </button>
-
-          <button
-            id="auth-signout-btn"
-            onClick={handleLogout}
-            disabled={busy}
-            className="w-full rounded-lg border border-border px-4 py-2.5 text-sm text-muted-foreground hover:bg-muted transition-colors disabled:opacity-60"
-          >
-            Sign out
-          </button>
-        </div>
-
-        {/* Status message */}
-        {message && (
-          <div
-            className={`rounded-lg px-4 py-3 text-sm ${
-              isError
-                ? "border border-destructive/20 bg-destructive/10 text-destructive"
-                : "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-            }`}
-          >
-            {message}
-          </div>
-        )}
+    <AuthShell>
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          {mode === "login" && "Welcome back"}
+          {mode === "signup" && "Create an account"}
+          {mode === "forgot" && "Reset password"}
+        </h2>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {mode === "login" && "Enter your credentials to access your account."}
+          {mode === "signup" && "Sign up to start planning your financial future."}
+          {mode === "forgot" && "We don't support password reset yet. Please go back."}
+        </p>
       </div>
-    </main>
+
+      {mode === "login" && (
+        <LoginForm
+          onModeChange={setMode}
+          onSubmit={handleSignIn}
+          busy={busy}
+          error={isError ? message : null}
+        />
+      )}
+      
+      {mode === "signup" && (
+        <SignupForm
+          onModeChange={setMode}
+          onSubmit={handleSignUp}
+          busy={busy}
+          error={isError ? message : null}
+        />
+      )}
+      
+      {mode === "forgot" && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Contact support to reset your password.
+          </p>
+          <button
+            onClick={() => setMode("login")}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Back to sign in
+          </button>
+        </div>
+      )}
+
+      {(mode === "login" || mode === "signup") && (
+        <>
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <GoogleAuthButton
+            onClick={handleGoogleSignIn}
+            busy={busy}
+            error={null}
+          />
+        </>
+      )}
+
+      {!isError && message && (
+        <div className="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+          {message}
+        </div>
+      )}
+    </AuthShell>
   );
 }
